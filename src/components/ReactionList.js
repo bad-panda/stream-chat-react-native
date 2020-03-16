@@ -18,6 +18,7 @@ const TouchableWrapper = styled.TouchableOpacity`
   ${(props) => (props.position === 'left' ? 'left: -10px;' : 'right: -10px;')}
   height: 28px;
   z-index: 10;
+  ${({ theme }) => theme.message.reactionList.wrapper.css}
 `;
 
 const Container = styled.View`

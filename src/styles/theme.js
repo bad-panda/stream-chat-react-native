@@ -142,6 +142,7 @@ export const defaultTheme = {
     reactionList: {
       container: {},
       reactionCount: {},
+      wrapper: {},
     },
 
     reactionPicker: {
