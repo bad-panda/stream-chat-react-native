@@ -171,6 +171,10 @@ const MessageInput = withKeyboardContext(
             closeSuggestions: PropTypes.func,
             /** @see See [suggestions context](https://getstream.github.io/stream-chat-react-native/#suggestionscontext) */
             updateSuggestions: PropTypes.func,
+
+            triggerSettings: PropTypes.object,
+            ACITriggerSettings: PropTypes.func,
+
             /**
              * Custom UI component for send button.
              *
@@ -817,11 +821,16 @@ const MessageInput = withKeyboardContext(
                         onChange={this.onChange}
                         getCommands={this.getCommands}
                         setInputBoxRef={this.setInputBoxRef}
-                        triggerSettings={ACITriggerSettings({
-                          users: this.getUsers(),
-                          commands: this.getCommands(),
-                          onMentionSelectItem: this.onSelectItem,
-                        })}
+                        triggerSettings={
+                          this.props.triggerSettings ||
+                          (this.props.ACITriggerSettings || ACITriggerSettings)(
+                            {
+                              users: this.getUsers(),
+                              commands: this.getCommands(),
+                              onMentionSelectItem: this.onSelectItem,
+                            },
+                          )
+                        }
                         additionalTextInputProps={
                           this.props.additionalTextInputProps
                         }
