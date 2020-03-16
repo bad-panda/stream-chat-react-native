@@ -77,12 +77,16 @@ export class AutoCompleteInput extends React.PureComponent {
 
   updateSuggestions(q) {
     const triggers = this.props.triggerSettings;
-    this.props.updateSuggestions({
-      data: triggers[this.state.currentTrigger].dataProvider(
-        q,
-        this.state.text,
-      ),
-      onSelect: this.onSelectSuggestion,
+    // allow data provider to return a promise
+    const dataPromise = Promise.resolve(
+      triggers[this.state.currentTrigger].dataProvider(q, this.state.text),
+    );
+
+    dataPromise.then((data) => {
+      this.props.updateSuggestions({
+        data,
+        onSelect: this.onSelectSuggestion,
+      });
     });
   }
 
