@@ -75,6 +75,22 @@ export const ChannelPreviewMessenger = themed(
       latestMessage: PropTypes.object,
       /** Number of unread messages on channel */
       unread: PropTypes.number,
+      /** Length at which latest message should be truncated */
+      latestMessageLength: PropTypes.number,
+      /**
+       * Formatter function for date of latest message.
+       * @param date Message date
+       * @returns Formatted date string
+       *
+       * By default today's date is shown in 'HH:mm A' format and other dates
+       * are displayed in 'DD/MM/YY' format. props.latestMessage.created_at is the
+       * default formated date. This default logic is part of ChannelPreview component.
+       */
+      formatLatestMessageDate: PropTypes.func,
+    };
+
+    static defaultProps = {
+      latestMessageLength: 30,
     };
 
     onSelectChannel = () => {
@@ -84,12 +100,24 @@ export const ChannelPreviewMessenger = themed(
     renderAvatar = (otherMembers) => {
       const { channel } = this.props;
       if (channel.data.image)
-        return <Avatar image={channel.data.image} size={40} />;
+        return (
+          <Avatar
+            image={channel.data.image}
+            size={40}
+            name={channel.data.name}
+          />
+        );
 
       if (otherMembers.length === 1)
-        return <Avatar image={otherMembers[0].user.image} size={40} />;
+        return (
+          <Avatar
+            image={otherMembers[0].user.image}
+            size={40}
+            name={channel.data.name || otherMembers[0].user.name}
+          />
+        );
 
-      return <Avatar size={40} />;
+      return <Avatar size={40} name={channel.data.name} />;
     };
 
     render() {
@@ -109,7 +137,7 @@ export const ChannelPreviewMessenger = themed(
           .map((member) => member.user.name || member.user.id || 'Unnamed User')
           .join(', ');
       }
-
+      const formatLatestMessageDate = this.props.formatLatestMessageDate;
       return (
         <Container onPress={this.onSelectChannel}>
           {this.renderAvatar(otherMembers)}
@@ -118,17 +146,22 @@ export const ChannelPreviewMessenger = themed(
               <Title ellipsizeMode="tail" numberOfLines={1}>
                 {name}
               </Title>
-              <Date>{this.props.latestMessage.created_at}</Date>
+              <Date>
+                {formatLatestMessageDate
+                  ? formatLatestMessageDate(
+                      this.props.latestMessage.messageObject.created_at,
+                    )
+                  : this.props.latestMessage.created_at}
+              </Date>
             </DetailsTop>
             <Message
               unread={this.props.unread > 0 ? this.props.unread : undefined}
             >
               {!this.props.latestMessage
                 ? 'Nothing yet...'
-                : truncate(
-                    this.props.latestMessage.text.replace(/\n/g, ' '),
-                    14,
-                  )}
+                : truncate(this.props.latestMessage.text.replace(/\n/g, ' '), {
+                    length: this.props.latestMessageLength,
+                  })}
             </Message>
           </Details>
         </Container>

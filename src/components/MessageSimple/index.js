@@ -2,10 +2,10 @@ import React from 'react';
 import styled from '@stream-io/styled-components';
 import { themed } from '../../styles/theme';
 
-import { MessageStatus } from './MessageStatus';
-import { MessageContent } from './MessageContent';
-import { MessageAvatar } from './MessageAvatar';
-import { MessageSystem } from '../MessageSystem';
+import { MessageAvatar as DefaultMessageAvatar } from './MessageAvatar';
+import { MessageContent as DefaultMessageContent } from './MessageContent';
+import { MessageStatus as DefaultMessageStatus } from './MessageStatus';
+import { MessageSystem as DefaultMessageSystem } from '../MessageSystem';
 
 import PropTypes from 'prop-types';
 
@@ -31,6 +31,39 @@ const Container = styled.View`
 export const MessageSimple = themed(
   class MessageSimple extends React.PureComponent {
     static propTypes = {
+      /**
+       * Custom UI component for the avatar next to a message
+       * Defaults to: https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/MessageSimple/MessageAvatar.js
+       * */
+      MessageAvatar: PropTypes.oneOfType([
+        PropTypes.node,
+        PropTypes.elementType,
+      ]),
+      /**
+       * Custom UI component for message content
+       * Defaults to: https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/MessageSimple/MessageContent.js
+       * */
+      MessageContent: PropTypes.oneOfType([
+        PropTypes.node,
+        PropTypes.elementType,
+      ]),
+      /**
+       * Custom UI component for message status (delivered/read)
+       * Defaults to: https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/MessageSimple/MessageStatus.js
+       *
+       * */
+      MessageStatus: PropTypes.oneOfType([
+        PropTypes.node,
+        PropTypes.elementType,
+      ]),
+      /**
+       * Custom UI component for Messages of type "system"
+       * Defaults to: https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/MessageSystem.js
+       * */
+      MessageSystem: PropTypes.oneOfType([
+        PropTypes.node,
+        PropTypes.elementType,
+      ]),
       /** Custom UI component for message text */
       MessageText: PropTypes.oneOfType([PropTypes.node, PropTypes.elementType]),
       /** enabled reactions, this is usually set by the parent component based on channel configs */
@@ -169,6 +202,7 @@ export const MessageSimple = themed(
         PropTypes.node,
         PropTypes.elementType,
       ]),
+      formatDate: PropTypes.func,
     };
 
     static defaultProps = {
@@ -176,6 +210,10 @@ export const MessageSimple = themed(
       repliesEnabled: true,
       forceAlign: false,
       showMessageStatus: true,
+      MessageAvatar: DefaultMessageAvatar,
+      MessageContent: DefaultMessageContent,
+      MessageStatus: DefaultMessageStatus,
+      MessageSystem: DefaultMessageSystem,
     };
 
     static themePath = 'message';
@@ -187,6 +225,10 @@ export const MessageSimple = themed(
         groupStyles,
         forceAlign,
         showMessageStatus,
+        MessageAvatar,
+        MessageContent,
+        MessageStatus,
+        MessageSystem,
       } = this.props;
 
       let pos;

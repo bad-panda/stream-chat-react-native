@@ -12,7 +12,9 @@ import * as SeamlessImmutable from 'seamless-immutable';
 //
 //================================================================================================
 //================================================================================================
-declare function withChatContext(): React.FC;
+declare function withChatContext<T>(
+  OriginalComponent: React.ElementType<T>,
+): React.ElementType<T>;
 export interface ChatContext extends React.Context<ChatContextValue> {}
 export interface ChatContextValue {
   client?: Client.StreamChat;
@@ -25,7 +27,9 @@ export interface ChatContextValue {
   connectionRecovering?: boolean;
 }
 
-declare function withSuggestionsContext(): React.FC;
+declare function withSuggestionsContext<T>(
+  OriginalComponent: React.ElementType<T>,
+): React.ElementType<T>;
 export interface SuggestionsContext
   extends React.Context<SuggestionsContextValue> {}
 export interface SuggestionsContextValue {
@@ -47,7 +51,9 @@ export interface SuggestionsContextValue {
   updateSuggestions?(suggestions: Array<object>): void;
 }
 
-declare function withChannelContext(): React.FC;
+declare function withChannelContext<T>(
+  OriginalComponent: React.ElementType<T>,
+): React.ElementType<T>;
 export interface ChannelContext extends React.Context<ChannelContextValue> {}
 export interface ChannelContextValue {
   Message?: React.ElementType<MessageUIComponentProps>;
@@ -91,6 +97,7 @@ export interface ChannelContextValue {
     updatedMessage: Client.MessageResponse,
     extraState?: object,
   ): void;
+  editMessage?(message: Client.Message): void | Promise<Client.MessageResponse>;
   retrySendMessage?(message: Client.Message): void;
   removeMessage?(updatedMessage: Client.MessageResponse): void;
   setEditingState?(message: Client.Message): void;
@@ -141,6 +148,46 @@ export interface ChannelProps extends ChatContextValue {
   EmptyStateIndicator?: React.ElementType<EmptyStateIndicatorProps>;
   Message?: React.ElementType<MessageUIComponentProps>;
   Attachment?: React.ElementType<AttachmentProps>;
+  /** Function that overrides default sendMessage in chat client */
+  doSendMessageRequest?(
+    channelId: string,
+    message: Client.Message,
+  ): void | Promise<Client.MessageResponse>;
+  /** Function that overrides default updateMessage in chat client */
+  doUpdateMessageRequest?(
+    channelId: string,
+    message: Client.Message,
+  ): void | Promise<Client.MessageResponse>;
+  /**
+   * If true, KeyboardCompatibleView wrapper is disabled.
+   *
+   * Channel component internally uses [KeyboardCompatibleView](https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/KeyboardCompatibleView.js) component
+   * internally to adjust the height of Channel component when keyboard is opened or dismissed. This prop gives you ability to disable this functionality, in case if you
+   * want to use [KeyboardAvoidingView](https://facebook.github.io/react-native/docs/keyboardavoidingview) or you want to handle keyboard dismissal yourself.
+   * KeyboardAvoidingView works well when your component occupies 100% of screen height, otherwise it may raise some issues.
+   *
+   * Defaults value is false.
+   * */
+  disableKeyboardCompatibleView?: boolean;
+  /**
+   * Custom wrapper component that handles height adjustment of Channel component when keyboard is opened or dismissed.
+   * Defaults to [KeyboardCompatibleView](https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/KeyboardCompatibleView.js)
+   *
+   * This prop can be used to configure default KeyboardCompatibleView component.
+   * e.g.,
+   * <Channel
+   *  channel={channel}
+   *  ...
+   *  KeyboardCompatibleView={(props) => {
+   *    return (
+   *      <KeyboardCompatibleView keyboardDismissAnimationDuration={200} keyboardOpenAnimationDuration={200}>
+   *        {props.children}
+   *      </KeyboardCompatibleView>
+   *    )
+   *  }}
+   * />
+   */
+  KeyboardCompatibleView?: React.ElementType<KeyboardCompatibleViewProps>;
 }
 
 export type listType = 'channel' | 'message' | 'default';
@@ -206,6 +253,8 @@ export interface MessageInputProps
   /** https://github.com/beefe/react-native-actionsheet/blob/master/lib/styles.js */
   actionSheetStyles?: object;
   AttachmentFileIcon?: React.ElementType<FileIconUIComponentProps>;
+  AttachButton?: React.ElementType<AttachButtonProps>;
+  SendButton: React.ElementType<SendButtonProps>;
 }
 
 export interface AttachmentProps extends MessageContentContextValue {
@@ -313,7 +362,10 @@ export interface ChannelPreviewUIComponentProps
   latestMessage: {
     text: string;
     created_at: string;
+    messageObject: Client.MessageResponse;
   };
+  /** Length at which latest message should be truncated */
+  latestMessageLength: number;
 }
 
 export interface MessageListProps extends ChannelContextValue {
@@ -442,11 +494,20 @@ export interface MessageUIComponentProps
    * */
   forceAlign: string | boolean;
   showMessageStatus: boolean;
+  /** Custom UI component for the avatar next to a message */
+  MessageAvatar?: React.ElementType<MessageAvatarUIComponentProps>;
+  /** Custom UI component for message content */
+  MessageContent?: React.ElementType<MessageContentUIComponentProps>;
+  /** Custom UI component for message status (delivered/read) */
+  MessageStatus?: React.ElementType<MessageStatusUIComponentProps>;
+  /** Custom UI component for Messages of type "system" */
+  MessageSystem?: React.ElementType<MessageSystemProps>;
   /** Custom UI component for message text */
   MessageText?: React.ElementType<MessageTextProps>;
   /** https://github.com/beefe/react-native-actionsheet/blob/master/lib/styles.js */
   actionSheetStyles?: object;
   AttachmentFileIcon?: React.ElementType<FileIconUIComponentProps>;
+  formatDate(date: string): string;
 }
 
 export interface MessageRepliesUIComponentProps {
@@ -573,10 +634,6 @@ export interface CommandsItemProps {
   description: string;
 }
 
-export interface DateSeparatorProps {
-  message: Client.MessageResponse;
-  formatDate?(date: Date): string;
-}
 export interface FileAttachmentGroupProps {
   messageId: string;
   files: [];
@@ -610,7 +667,13 @@ export interface ImageUploadPreviewProps {
   removeImage?(id: string): void;
   retryUpload?(id: string): Promise<any>;
 }
-export interface KeyboardCompatibleViewProps {}
+export interface KeyboardCompatibleViewProps {
+  // Default: 500
+  keyboardDismissAnimationDuration?: number;
+  // Default: 500
+  keyboardOpenAnimationDuration?: number;
+  enabled?: boolean;
+}
 
 export interface EmptyStateIndicatorProps {
   listType?: listType;
@@ -627,6 +690,7 @@ export interface LoadingErrorIndicatorProps {
 }
 export interface LoadingIndicatorProps {
   listType?: listType;
+  loadingText?: string;
 }
 export interface MentionsItemProps {
   item: {
@@ -702,6 +766,16 @@ export interface AttachmentActionsProps {
   text: string;
   actions: Client.Action[];
   actionHandler?(name: string, value: string): any;
+}
+
+export interface AttachButtonProps {
+  handleOnPress(): void;
+}
+
+export interface SendButtonProps {
+  title: string;
+  editing: Client.MessageResponse | boolean;
+  sendMessage(): void;
 }
 
 //================================================================================================
@@ -799,6 +873,8 @@ export class TypingIndicator extends React.PureComponent<
 > {}
 export class MessageInput extends React.PureComponent<MessageInputProps, any> {}
 
+export class AttachButton extends React.PureComponent<AttachButtonProps, any> {}
+export class SendButton extends React.PureComponent<SendButtonProps> {}
 export class MessageSimple extends React.PureComponent<
   MessageUIComponentProps,
   any
