@@ -2,7 +2,9 @@ import { MentionsItem } from '../components/MentionsItem';
 import { CommandsItem } from '../components/CommandsItem';
 
 export { renderText } from './renderText';
+export { renderReactions } from './renderReactions';
 
+export { Streami18n } from './Streami18n';
 export const emojiData = [
   {
     id: 'like',
@@ -52,6 +54,7 @@ export const ACITriggerSettings = ({
   users,
   onMentionSelectItem,
   commands,
+  t = (msg) => msg,
 }) => ({
   '@': {
     dataProvider: (q) => {
@@ -71,7 +74,7 @@ export const ACITriggerSettings = ({
       return matchingUsers.slice(0, 10);
     },
     component: MentionsItem,
-    title: 'Searching for people',
+    title: t('Searching for people'),
     output: (entity) => ({
       key: entity.id,
       text: `@${entity.name || entity.id}`,
@@ -111,7 +114,7 @@ export const ACITriggerSettings = ({
 
       return selectedCommands.slice(0, 10);
     },
-    title: 'Commands',
+    title: t('Commands'),
     component: CommandsItem,
     output: (entity) => ({
       key: entity.id,
@@ -134,5 +137,5 @@ export const makeImageCompatibleUrl = (url) => {
   let newUrl = url;
   if (url.indexOf('//') === 0) newUrl = 'https:' + url;
 
-  return newUrl;
+  return newUrl.trim();
 };

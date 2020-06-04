@@ -1,9 +1,10 @@
 // TypeScript Version: 2.8
 
 import * as React from 'react';
-import { Text, GestureResponderEvent } from 'react-native';
+import { Text, GestureResponderEvent, FlatList } from 'react-native';
 import * as Client from 'stream-chat';
 import * as SeamlessImmutable from 'seamless-immutable';
+import * as i18next from 'i18next';
 
 //================================================================================================
 //================================================================================================
@@ -25,6 +26,16 @@ export interface ChatContextValue {
   ): void;
   isOnline?: boolean;
   connectionRecovering?: boolean;
+}
+
+declare function withTranslationContext<T>(
+  OriginalComponent: React.ElementType<T>,
+): React.ElementType<T>;
+export interface TranslationContext
+  extends React.Context<TranslationContextValue> {}
+export interface TranslationContextValue {
+  t?: i18next.TFunction;
+  tDateTimeParser?(datetime: string | number): object;
 }
 
 declare function withSuggestionsContext<T>(
@@ -110,6 +121,7 @@ export interface ChannelContextValue {
   loadMoreThread?(): void;
   closeThread?(): void;
   clearEditingState?(): void;
+  disabled?: boolean;
 }
 
 export interface KeyboardContext extends React.Context<KeyboardContextValue> {}
@@ -121,6 +133,8 @@ export interface MessageContentContext
   extends React.Context<MessageContentContextValue> {}
 export interface MessageContentContextValue {
   onLongPress?: (event: GestureResponderEvent) => void;
+  disabled?: boolean;
+  additionalTouchableProps?: object;
 }
 
 //================================================================================================
@@ -130,7 +144,7 @@ export interface MessageContentContextValue {
 //
 //================================================================================================
 //================================================================================================
-export interface ChatProps {
+export interface ChatProps extends StyledComponentProps {
   /** The StreamChat client object */
   client: Client.StreamChat;
   /**
@@ -139,15 +153,20 @@ export interface ChatProps {
    * @ref https://getstream.io/chat/react-native-chat/tutorial/#custom-styles
    * */
   style?: object;
+  i18nInstance?: Streami18n;
 }
 
-export interface ChannelProps extends ChatContextValue {
+export interface ChannelProps
+  extends ChatContextValue,
+    TranslationContextValue {
   /** The loading indicator to use */
   LoadingIndicator?: React.ElementType;
   LoadingErrorIndicator?: React.ElementType<LoadingErrorIndicatorProps>;
   EmptyStateIndicator?: React.ElementType<EmptyStateIndicatorProps>;
   Message?: React.ElementType<MessageUIComponentProps>;
   Attachment?: React.ElementType<AttachmentProps>;
+  /** Function that overrides default markRead in channel */
+  doMarkReadRequest?(channel: Client.Channel): void;
   /** Function that overrides default sendMessage in chat client */
   doSendMessageRequest?(
     channelId: string,
@@ -188,32 +207,41 @@ export interface ChannelProps extends ChatContextValue {
    * />
    */
   KeyboardCompatibleView?: React.ElementType<KeyboardCompatibleViewProps>;
+  disableIfFrozenChannel?: boolean;
 }
 
 export type listType = 'channel' | 'message' | 'default';
 
-export interface LoadingErrorIndicatorProps {
+export interface StyledComponentProps {
+  style?: object;
+}
+
+export interface LoadingErrorIndicatorProps extends StyledComponentProps {
   listType?: listType;
 }
-export interface EmptyStateIndicatorProps {
+export interface EmptyStateIndicatorProps extends StyledComponentProps {
   listType?: listType;
 }
 
-export interface LoadingIndicatorProps {
+export interface LoadingIndicatorProps extends StyledComponentProps {
   listType?: listType;
 }
-export interface DateSeparatorProps {
+export interface DateSeparatorProps
+  extends StyledComponentProps,
+    TranslationContextValue {
   message: Client.MessageResponse;
   formatDate(date: string): string;
 }
 
-export interface EventIndicatorProps {
+export interface EventIndicatorProps
+  extends StyledComponentProps,
+    TranslationContextValue {
   event:
     | Client.Event<Client.MemberAddedEvent>
     | Client.Event<Client.MemberRemovedEvent>;
 }
 
-export interface AvatarProps {
+export interface AvatarProps extends StyledComponentProps {
   /** image url */
   image?: string;
   /** name of the picture, used for title tag fallback */
@@ -234,12 +262,18 @@ export interface FileUploadResponse {
 export interface MessageInputProps
   extends KeyboardContextValue,
     ChannelContextValue,
-    SuggestionsContextValue {
+    SuggestionsContextValue,
+    TranslationContextValue,
+    StyledComponentProps {
+  /** Callback that is called when the text input's text changes. Changed text is passed as a single string argument to the callback handler. */
+  onChangeText?(newText: string): void;
+  /** Initial value to set on input */
+  initialValue?: string;
   /** The parent message object when replying on a thread */
   parent?: Client.Message | null;
 
   /** The component handling how the input is rendered */
-  Input?: React.ElementType;
+  Input?: React.ElementType<InputUIComponentProps>;
 
   /** Override image upload request */
   doImageUploadRequest?(file: File): Promise<FileUploadResponse>;
@@ -257,7 +291,60 @@ export interface MessageInputProps
   SendButton: React.ElementType<SendButtonProps>;
 }
 
-export interface AttachmentProps extends MessageContentContextValue {
+export interface DocumentPickerFile {
+  cancelled: boolean;
+  uri?: string;
+  name?: string;
+}
+
+export interface ImagePickerFile {
+  cancelled: boolean;
+  uri?: string;
+}
+export interface InputUIComponentProps {
+  /** Returns list of users. This is used suggestions list for mentions feature (when user types '@') */
+  getUsers?(): Client.UserResponse[];
+  /** When item from mention's suggestion list is selected. This callback handler adds it to `mentioned_users` list of message */
+  onSelectItem?(): void;
+  /** Checks if the message is valid or not. Accordingly we can enable/disable send button */
+  isValidMessage?(): boolean;
+  /** Sends the current message */
+  sendMessage?(): void;
+  /** Sends the current edited message */
+  updateMessage?(): Promise<void>;
+  /** Handler for attach file functionality */
+  _pickFile?(): void;
+  /** Adds selected file to state of MessageInput component (`state.fileUploads` list) and calls _uploadFile */
+  uploadNewFile?(file: DocumentPickerFile): void;
+  /** Uploads the selected file corresponding to id in fileUploads array in state of MessageInput */
+  _uploadFile?(id: string): void;
+  _removeFile?(id: string): void;
+  /** Handler for attach image functionality */
+  _pickImage?(): Promise<void>;
+  /** Adds selected file to state of MessageInput component (`state.imageUploads` list) and calls _uploadImage */
+  uploadNewImage?(file: ImagePickerFile): void;
+  /** Uploads the selected image corresponding to id in imageUploads array in state of MessageInput */
+  _uploadImage?(): void;
+  _removeImage?(id: string): void;
+  /** Callback when text in inputbox changes */
+  onChangeText?(text: string): void;
+  /** object the ref via callback - https://reactjs.org/docs/refs-and-the-dom.html#callback-refs */
+  setInputBoxRef?(ref: any): void;
+  /** Returns all available list of commands */
+  getCommands?(): Client.CommandResponse[];
+  /** Hides the attach actionsheet */
+  closeAttachActionSheet?(): void;
+  /** Append the text to input box */
+  appendText?(text: string): void;
+  triggerSettings?(): object;
+  disabled?: boolean;
+  value?: string;
+  additionalTextInputProps?: object;
+}
+
+export interface AttachmentProps
+  extends StyledComponentProps,
+    MessageContentContextValue {
   /** The attachment to render */
   attachment: Client.Attachment;
   /**
@@ -265,10 +352,35 @@ export interface AttachmentProps extends MessageContentContextValue {
     Examples include canceling a \/giphy command or shuffling the results.
     */
   actionHandler?(name: string, value: string): any;
+
+  UrlPreview?: React.ElementType<CardProps>;
+  Giphy?: React.ElementType<CardProps>;
+  Card?: React.ElementType<CardProps>;
+  /**
+   * Custom UI component to override default header of Card component.
+   * Accepts the same props as Card component.
+   */
+  CardHeader?: React.ElementType<CardProps>;
+  /**
+   * Custom UI component to override default cover (between Header and Footer) of Card component.
+   * Accepts the same props as Card component.
+   */
+  CardCover?: React.ElementType<CardProps>;
+  /**
+   * Custom UI component to override default Footer of Card component.
+   * Accepts the same props as Card component.
+   */
+  CardFooter?: React.ElementType<CardProps>;
+  FileAttachment?: React.ElementType<FileAttachmentGroup>;
+  AttachmentActions?: React.ElementType<AttachmentActionsProps>;
+  Gallery?: React.ElementType<GalleryProps>;
+
   groupStyle: 'single' | 'top' | 'middle' | 'bottom';
 }
 
-export interface ChannelListProps extends ChatContextValue {
+export interface ChannelListProps
+  extends StyledComponentProps,
+    ChatContextValue {
   /** The Preview to use, defaults to ChannelPreviewLastMessage */
   Preview?: React.ElementType<ChannelPreviewUIComponentProps>;
 
@@ -278,6 +390,27 @@ export interface ChannelListProps extends ChatContextValue {
   LoadingErrorIndicator?: React.ElementType<LoadingErrorIndicatorProps>;
   /** The indicator to use when channel list is empty */
   EmptyStateIndicator?: React.ElementType<EmptyStateIndicatorProps>;
+  /**
+   * The indicator to display network-down error at top of list, if there is connectivity issue
+   * Default: [ChannelListHeaderNetworkDownIndicator](https://getstream.github.io/stream-chat-react-native/#ChannelListHeaderNetworkDownIndicator)
+   */
+  HeaderNetworkDownIndicator?: React.ElementType<
+    ChannelListHeaderNetworkDownIndicatorProps
+  >;
+  /**
+   * The indicator to display error at top of list, if there was an error loading some page/channels after the first page.
+   * Default: [ChannelListHeaderErrorIndicator](https://getstream.github.io/stream-chat-react-native/#ChannelListHeaderErrorIndicator)
+   */
+  HeaderErrorIndicator?: React.ElementType<
+    ChannelListHeaderErrorIndicatorProps
+  >;
+  /**
+   * Loading indicator to display at bottom of the list, while loading further pages.
+   * Default: [ChannelListFooterLoadingIndicator](https://getstream.github.io/stream-chat-react-native/#ChannelListFooterLoadingIndicator)
+   */
+  FooterLoadingIndicator?: React.ElementType<
+    ChannelListFooterLoadingIndicatorProps
+  >;
 
   List?: React.ElementType<ChannelListUIComponentProps>;
 
@@ -313,6 +446,10 @@ export interface ChannelListProps extends ChatContextValue {
     thisArg: React.Component<ChannelListProps>,
     e: Client.Event<Client.ChannelTruncatedEvent>,
   ): void;
+  onChannelHidden?(
+    thisArg: React.Component<ChannelListProps>,
+    e: Client.Event<Client.ChannelHiddenEvent>,
+  ): void;
   // TODO: Create proper interface for followings in chat js client.
   /** Object containing query filters */
   filters: object;
@@ -321,7 +458,34 @@ export interface ChannelListProps extends ChatContextValue {
   /** Object containing sort parameters */
   sort?: object;
   loadMoreThreshold?: number;
+  /**
+   * Besides existing (default) UX behaviour of underlying flatlist of ChannelList component, if you want
+   * to attach some additional props to un derlying flatlist, you can add it to following prop.
+   *
+   * You can find list of all the available FlatList props here - https://facebook.github.io/react-native/docs/flatlist#props
+   *
+   * **NOTE** Don't use `additionalFlatListProps` to get access to ref of flatlist. Use `setFlatListRef` instead.
+   * e.g.
+   * ```
+   * <MessageList
+   *  filters={filters}
+   *  sort={sort}
+   *  additionalFlatListProps={{ bounces: true }} />
+   * ```
+   */
   additionalFlatListProps?: object;
+  /**
+   * Use `setFlatListRef` to get access to ref to inner FlatList.
+   *
+   * e.g.
+   * <MessageList
+   *  setFlatListRef={(ref) => {
+   *    // Use ref for your own good
+   *  }}
+   */
+  setFlatListRef?(
+    ref: React.RefObject<FlatList<Client.Channel>>,
+  ): PropTypes.func;
 }
 
 export interface ChannelListState {
@@ -341,11 +505,24 @@ export interface ChannelListState {
 
 export interface ChannelListUIComponentProps
   extends ChannelListProps,
-    ChannelListState {
+    ChannelListState,
+    StyledComponentProps {
+  reloadList(): void;
   loadNextPage(): void;
+  refreshList(): void;
 }
 
-export interface ChannelPreviewProps extends ChannelListUIComponentProps {
+export interface ChannelListHeaderNetworkDownIndicatorProps
+  extends TranslationContextValue {}
+export interface ChannelListHeaderErrorIndicatorProps
+  extends TranslationContextValue {
+  onPress?: () => void;
+}
+export interface ChannelListFooterLoadingIndicatorProps {}
+
+export interface ChannelPreviewProps
+  extends ChannelListUIComponentProps,
+    TranslationContextValue {
   Preview: React.ElementType<ChannelPreviewUIComponentProps>;
   key: string;
 }
@@ -358,7 +535,8 @@ export interface ChannelPreviewState {
 
 export interface ChannelPreviewUIComponentProps
   extends ChannelPreviewProps,
-    ChannelPreviewState {
+    ChannelPreviewState,
+    StyledComponentProps {
   latestMessage: {
     text: string;
     created_at: string;
@@ -368,9 +546,12 @@ export interface ChannelPreviewUIComponentProps
   latestMessageLength: number;
 }
 
-export interface MessageListProps extends ChannelContextValue {
+export interface MessageListProps
+  extends ChannelContextValue,
+    TranslationContextValue,
+    StyledComponentProps {
   /** Turn off grouping of messages by user */
-  messageActions: Array<MessageAction>;
+  messageActions?: Array<MessageAction>;
   noGroupByUser?: boolean;
   /** Weather its a thread of no. Default - false  */
   threadList?: boolean;
@@ -409,7 +590,32 @@ export interface MessageListProps extends ChannelContextValue {
   /** https://github.com/beefe/react-native-actionsheet/blob/master/lib/styles.js */
   actionSheetStyles?: object;
   AttachmentFileIcon?: React.ElementType<FileIconUIComponentProps>;
+  /**
+   * Besides existing (default) UX behaviour of underlying flatlist of ChannelList component, if you want
+   * to attach some additional props to un derlying flatlist, you can add it to following prop.
+   *
+   * You can find list of all the available FlatList props here - https://facebook.github.io/react-native/docs/flatlist#props
+   *
+   * **NOTE** Don't use `additionalFlatListProps` to get access to ref of flatlist. Use `setFlatListRef` instead.
+   * e.g.
+   * ```
+   * <MessageList
+   *  filters={filters}
+   *  sort={sort}
+   *  additionalFlatListProps={{ bounces: true }} />
+   * ```
+   */
   additionalFlatListProps?: object;
+  /**
+   * Use `setFlatListRef` to get access to ref to inner FlatList.
+   *
+   * e.g.
+   * <MessageList
+   *  setFlatListRef={(ref) => {
+   *    // Use ref for your own custom functionality
+   *  }}
+   */
+  setFlatListRef?(ref: React.RefObject<FlatList<object>>): void;
 }
 
 declare type MessageAction = 'edit' | 'delete' | 'reactions' | 'reply';
@@ -417,7 +623,7 @@ export interface MessageProps extends KeyboardContextValue {
   client: Client.StreamChat;
   onThreadSelect?(message: Client.MessageResponse): void;
   /** The message object */
-  message: Client.Message;
+  message: Client.MessageResponse;
   /** groupStyles, a list of styles to apply to this message. ie. top, bottom, single etc */
   groupStyles: Array<string>;
   /** A list of users that have read this message **/
@@ -453,11 +659,13 @@ export interface MessageProps extends KeyboardContextValue {
     message: Client.MessageResponse,
   ): void;
   dismissKeyboardOnMessageTouch: boolean;
+  disabled?: boolean;
 }
 
 export interface MessageUIComponentProps
   extends MessageProps,
-    KeyboardContextValue {
+    KeyboardContextValue,
+    StyledComponentProps {
   reactionsEnabled: boolean;
   repliesEnabled: boolean;
   onMessageTouch?(
@@ -474,6 +682,8 @@ export interface MessageUIComponentProps
     message: Client.MessageResponse,
     e: GestureResponderEvent,
   ): any;
+  hideReactionCount?: boolean;
+  hideReactionOwners?: boolean;
   handleReaction(reactionType: string, event?: React.BaseSyntheticEvent): void;
   handleDelete?(): void;
   handleEdit?(): void;
@@ -504,13 +714,105 @@ export interface MessageUIComponentProps
   MessageSystem?: React.ElementType<MessageSystemProps>;
   /** Custom UI component for message text */
   MessageText?: React.ElementType<MessageTextProps>;
+  /** Custom UI component for message footer */
+  MessageHeader?: React.ElementType<MessageHeaderUIComponentProps>;
+  /** Custom UI component for message footer */
+  MessageFooter?: React.ElementType<MessageFooterUIComponentProps>;
+  /** Custom UI component for reaction list */
+  ReactionList?: React.ElementType<ReactionListProps>;
+  /**
+   * Custom UI component to display enriched url preview.
+   * Deaults to https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/Card.js
+   */
+  UrlPreview?: React.ElementType<CardProps>;
+  /**
+   * Custom UI component to display Giphy image.
+   * Deaults to https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/Card.js
+   */
+  Giphy?: React.ElementType<CardProps>;
+  /**
+   * Custom UI component to display group of File type attachments or multiple file attachments (in single message).
+   * Deaults to https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/FileAttachmentGroup.js
+   */
+  FileAttachmentGroup?: React.ElementType<FileAttachmentGroupProps>;
+  /**
+   * Custom UI component to display File type attachment.
+   * Deaults to https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/FileAttachment.js
+   */
+  FileAttachment?: React.ElementType<FileAttachmentProps>;
+  /**
+   * Custom UI component to display image attachments.
+   * Deaults to https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/Gallery.js
+   */
+  Gallery?: React.ElementType<GalleryProps>;
+  /**
+   * Custom UI component to display generic media type e.g. giphy, url preview etc
+   * Deaults to https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/Card.js
+   */
+  Card?: React.ElementType<CardProps>;
+  /**
+   * Custom UI component to override default header of Card component.
+   * Accepts the same props as Card component.
+   */
+  CardHeader?: React.ElementType<CardProps>;
+  /**
+   * Custom UI component to override default cover (between Header and Footer) of Card component.
+   * Accepts the same props as Card component.
+   */
+  CardCover?: React.ElementType<CardProps>;
+  /**
+   * Custom UI component to override default Footer of Card component.
+   * Accepts the same props as Card component.
+   */
+  CardFooter?: React.ElementType<CardProps>;
+
+  /**
+   * Custom UI component to display attachment actions. e.g., send, shuffle, cancel in case of giphy
+   * Deaults to https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/AttachmentActions.js
+   */
+  AttachmentActions?: React.ElementType<AttachmentActionsProps>;
+  /**
+   * List of supported/allowed reactions.
+   * e.g.,
+   * [
+   *  {
+   *    id: 'like',
+   *    icon: '👍',
+   *  },
+   *  {
+   *    id: 'love',
+   *    icon: '❤️️',
+   *  },
+   *  {
+   *    id: 'haha',
+   *    icon: '😂',
+   *  },
+   *  {
+   *    id: 'wow',
+   *    icon: '😮',
+   *  },
+   * ]
+   */
+  supportedReactions?: Array<{
+    icon: string;
+    id: string;
+  }>;
   /** https://github.com/beefe/react-native-actionsheet/blob/master/lib/styles.js */
   actionSheetStyles?: object;
   AttachmentFileIcon?: React.ElementType<FileIconUIComponentProps>;
   formatDate(date: string): string;
+  additionalTouchableProps?: object;
 }
 
-export interface MessageRepliesUIComponentProps {
+export interface MessageHeaderUIComponentProps
+  extends MessageContentUIComponentProps {}
+
+export interface MessageFooterUIComponentProps
+  extends MessageContentUIComponentProps {}
+
+export interface MessageRepliesUIComponentProps
+  extends TranslationContextValue,
+    StyledComponentProps {
   /** Current [message object](https://getstream.io/chat/docs/#message_format) */
   message: Client.MessageResponse;
   /** Boolean if current message is part of thread */
@@ -518,10 +820,10 @@ export interface MessageRepliesUIComponentProps {
   /** @see See [Channel Context](https://getstream.github.io/stream-chat-react-native/#channelcontext) */
   openThread?(message: Client.Message, event: React.SyntheticEvent): void;
   /** right | left */
-  pos: string;
+  alignment?: 'right' | 'left';
 }
 
-export interface MessageStatusUIComponentProps {
+export interface MessageStatusUIComponentProps extends StyledComponentProps {
   /** @see See [Channel Context](https://getstream.github.io/stream-chat-react-native/#channelcontext) */
   client: Client.StreamChat;
   /** A list of users who have read the message */
@@ -534,7 +836,7 @@ export interface MessageStatusUIComponentProps {
   isThreadList: boolean;
 }
 
-export interface MessageAvatarUIComponentProps {
+export interface MessageAvatarUIComponentProps extends StyledComponentProps {
   /** Current [message object](https://getstream.io/chat/docs/#message_format) */
   message: Client.MessageResponse;
   /**
@@ -553,11 +855,19 @@ export interface MessageAvatarUIComponentProps {
 }
 
 export interface MessageContentUIComponentProps
-  extends MessageUIComponentProps {
-  alignment: string;
+  extends MessageUIComponentProps,
+    TranslationContextValue {
+  alignment?: 'right' | 'left';
+  /** Open the reaction picker */
+  openReactionPicker?(): void;
+  /** Dismiss the reaction picker */
+  dismissReactionPicker?(): void;
+  /** Boolean - if reaction picker is visible. Hides the reaction list in that case */
+  reactionPickerVisible?: boolean;
 }
 
-export interface MessageTextContainerUIComponentProps {
+export interface MessageTextContainerUIComponentProps
+  extends StyledComponentProps {
   /** Current [message object](https://getstream.io/chat/docs/#message_format) */
   message: Client.MessageResponse;
   /**
@@ -579,11 +889,14 @@ export interface MessageTextContainerUIComponentProps {
   theme?: object;
 }
 
-export interface MessageTextProps {
+export interface MessageTextProps extends StyledComponentProps {
   message: Client.MessageResponse;
 }
 
-export interface ThreadProps extends ChannelContextValue {
+export interface ThreadProps
+  extends ChannelContextValue,
+    TranslationContextValue,
+    StyledComponentProps {
   /** the thread (the parent message object) */
   thread: SeamlessImmutable.Immutable<Client.MessageResponse>;
   /** The list of messages to render, state is handled by the parent channel component */
@@ -595,17 +908,22 @@ export interface ThreadProps extends ChannelContextValue {
   additionalMessageInputProps?: object;
 }
 
-export interface TypingIndicatorProps {
+export interface TypingIndicatorProps
+  extends StyledComponentProps,
+    TranslationContextValue {
   typing: [];
   client: Client.StreamChat;
+  Avatar?: React.ElementType<AvatarProps>;
 }
 
-export interface FileIconUIComponentProps {
+export interface FileIconUIComponentProps extends StyledComponentProps {
   size: number;
   mimeType?: string;
 }
 
-export interface AutoCompleteInputProps {
+export interface AutoCompleteInputProps
+  extends StyledComponentProps,
+    TranslationContextValue {
   value: string;
   openSuggestions?(title: string, component: React.ElementType<any>): void;
   closeSuggestions?(): void;
@@ -616,7 +934,7 @@ export interface AutoCompleteInputProps {
   additionalTextInputProps: object;
 }
 
-export interface CardProps {
+export interface CardProps extends StyledComponentProps {
   title?: string;
   title_link?: string;
   og_scrape_url?: string;
@@ -626,37 +944,58 @@ export interface CardProps {
   type?: string;
   alignment?: 'right' | 'left';
   onLongPress?: (event: GestureResponderEvent) => void;
+  Header: React.ElementType<CardProps>;
+  Cover: React.ElementType<CardProps>;
+  Footer: React.ElementType<CardProps>;
 }
 
-export interface CommandsItemProps {
+export interface CommandsItemProps extends StyledComponentProps {
   name: string;
   args: string;
   description: string;
 }
+export interface FileAttachmentProps
+  extends MessageContentContextValue,
+    StyledComponentProps {
+  /** The attachment to render */
+  attachment: Client.Attachment;
+  /**
+      The handler function to call when an action is selected on an attachment.
+      Examples include canceling a \/giphy command or shuffling the results.
+      */
+  actionHandler?(name: string, value: string): any;
+  groupStyle: 'single' | 'top' | 'middle' | 'bottom';
+  AttachmentFileIcon: React.ElementType<any>;
+  alignment?: 'right' | 'left';
+  onLongPress?: (event: GestureResponderEvent) => void;
+}
 
-export interface FileAttachmentGroupProps {
+export interface FileAttachmentGroupProps extends StyledComponentProps {
   messageId: string;
   files: [];
   handleAction?(): void;
-  alignment: 'right' | 'left';
+  alignment?: 'right' | 'left';
+  FileAttachment: React.ElementType<FileAttachmentProps>;
   AttachmentFileIcon: React.ElementType<any>;
 }
-export interface FileUploadPreviewProps {
+export interface FileUploadPreviewProps extends StyledComponentProps {
   fileUploads: [];
   removeFile?(id: string): void;
   retryUpload?(id: string): Promise<any>;
   AttachmentFileIcon: React.ElementType<any>;
 }
-export interface GalleryProps {
+export interface GalleryProps
+  extends StyledComponentProps,
+    TranslationContextValue {
   images: Client.Attachment[];
   onLongPress: (event: GestureResponderEvent) => void;
-  alignment: 'right' | 'left';
+  alignment?: 'right' | 'left';
 }
-export interface IconSquareProps {
+export interface IconSquareProps extends StyledComponentProps {
   icon: string;
   onPress?(event: GestureResponderEvent): void;
 }
-export interface ImageUploadPreviewProps {
+export interface ImageUploadPreviewProps extends StyledComponentProps {
   imageUploads: Array<{
     [id: string]: {
       id: string;
@@ -667,7 +1006,7 @@ export interface ImageUploadPreviewProps {
   removeImage?(id: string): void;
   retryUpload?(id: string): Promise<any>;
 }
-export interface KeyboardCompatibleViewProps {
+export interface KeyboardCompatibleViewProps extends StyledComponentProps {
   // Default: 500
   keyboardDismissAnimationDuration?: number;
   // Default: 500
@@ -675,49 +1014,70 @@ export interface KeyboardCompatibleViewProps {
   enabled?: boolean;
 }
 
-export interface EmptyStateIndicatorProps {
+export interface EmptyStateIndicatorProps extends StyledComponentProps {
   listType?: listType;
 }
-export interface EventIndicatorProps {
+export interface EventIndicatorProps extends StyledComponentProps {
   event:
     | Client.Event<Client.MemberAddedEvent>
     | Client.Event<Client.MemberRemovedEvent>
     | null;
 }
 
-export interface LoadingErrorIndicatorProps {
+export interface LoadingErrorIndicatorProps
+  extends StyledComponentProps,
+    TranslationContextValue {
   listType?: listType;
+  retry?: () => void;
 }
-export interface LoadingIndicatorProps {
+export interface LoadingIndicatorProps
+  extends StyledComponentProps,
+    TranslationContextValue {
   listType?: listType;
   loadingText?: string;
 }
-export interface MentionsItemProps {
+export interface MentionsItemProps
+  extends StyledComponentProps,
+    TranslationContextValue {
   item: {
     name?: string;
-    icon: string;
-    id?: string;
+    image?: string;
+    id: string;
   };
 }
 
-export interface MessageNotificationProps {
+export interface MessageNotificationProps
+  extends StyledComponentProps,
+    TranslationContextValue {
   showNotification: boolean;
   onPress?(event: GestureResponderEvent): void;
 }
 
-export interface MessageSystemProps {
+export interface MessageSystemProps
+  extends StyledComponentProps,
+    TranslationContextValue {
   message: Client.MessageResponse;
 }
 
-export interface ReactionListProps {
+export interface ReactionListProps extends StyledComponentProps {
   latestReactions: Client.ReactionResponse[];
   openReactionSelector?(event: GestureResponderEvent): void;
-  getTotalReactionCount?(): string | number;
+  getTotalReactionCount?(
+    supportedReacions?: Array<{
+      icon: string;
+      id: string;
+    }>,
+  ): string | number;
   visible: boolean;
   position: string;
+  supportedReactions?: Array<{
+    icon: string;
+    id: string;
+  }>;
 }
 
-export interface ReactionPickerProps {
+export interface ReactionPickerProps extends StyledComponentProps {
+  hideReactionCount?: boolean;
   hideReactionOwners: boolean;
   reactionPickerVisible: boolean;
   handleDismiss?(): void;
@@ -727,27 +1087,45 @@ export interface ReactionPickerProps {
   rpLeft: string | number;
   rpTop: string | number;
   rpRight: string | number;
-  emojiData: Array<{
+  supportedReactions?: Array<{
     icon: string;
     id: string;
   }>;
 }
 
-export interface ReactionPickerWrapperProps {
+export interface ReactionPickerWrapperProps extends StyledComponentProps {
   isMyMessage?(message: Client.MessageResponse): boolean;
   message: Client.MessageResponse;
-  offset: string | number;
+  hideReactionCount?: boolean;
+  hideReactionOwners?: boolean;
+  offset?: {
+    top: string | number;
+    left: string | number;
+    right: string | number;
+  };
   handleReaction?(id: string): void;
-  emojiData: Array<{
+  supportedReactions?: Array<{
     icon: string;
     id: string;
   }>;
-  style: object;
+  /**
+   * @deprecated
+   * emojiData is deprecated. But going to keep it for now
+   * to have backward compatibility. Please use supportedReactions instead.
+   * TODO: Remove following prop in 1.x.x
+   */
+  emojiData?: Array<{
+    icon: string;
+    id: string;
+  }>;
+  dismissReactionPicker?(): void;
+  reactionPickerVisible?: boolean;
+  openReactionPicker?(): void;
 }
 
-export interface SpinnerProps {}
+export interface SpinnerProps extends StyledComponentProps {}
 
-export interface SuggestionsProviderProps {
+export interface SuggestionsProviderProps extends StyledComponentProps {
   active: boolean;
   marginLeft: string | number;
   width: string | number;
@@ -756,23 +1134,23 @@ export interface SuggestionsProviderProps {
   handleDismiss?(event: GestureResponderEvent): void;
   suggestionsTitle: string;
 }
-export interface UploadProgressIndicatorProps {
+export interface UploadProgressIndicatorProps extends StyledComponentProps {
   active: boolean;
   type: 'in_progress' | 'retry';
   action?(event: GestureResponderEvent): void;
 }
 
-export interface AttachmentActionsProps {
+export interface AttachmentActionsProps extends StyledComponentProps {
   text: string;
   actions: Client.Action[];
   actionHandler?(name: string, value: string): any;
 }
 
-export interface AttachButtonProps {
+export interface AttachButtonProps extends StyledComponentProps {
   handleOnPress(): void;
 }
 
-export interface SendButtonProps {
+export interface SendButtonProps extends StyledComponentProps {
   title: string;
   editing: Client.MessageResponse | boolean;
   sendMessage(): void;
@@ -790,6 +1168,10 @@ export class AutoCompleteInput extends React.PureComponent<
   any
 > {}
 export class Card extends React.PureComponent<CardProps, any> {}
+export class FileAttachment extends React.PureComponent<
+  FileAttachmentProps,
+  any
+> {}
 export class CommandsItem extends React.PureComponent<CommandsItemProps, any> {}
 export class DateSeparator extends React.PureComponent<
   DateSeparatorProps,
@@ -902,6 +1284,18 @@ export class MessageTextContainer extends React.PureComponent<
 > {}
 
 export class ChannelList extends React.PureComponent<ChannelListProps, any> {}
+export class ChannelListHeaderErrorIndicator extends React.PureComponent<
+  ChannelListHeaderErrorIndicatorProps,
+  any
+> {}
+export class ChannelListHeaderNetworkDownIndicator extends React.PureComponent<
+  ChannelListHeaderNetworkDownIndicatorProps,
+  any
+> {}
+export class ChannelListFooterLoadingIndicator extends React.PureComponent<
+  ChannelListFooterLoadingIndicatorProps,
+  any
+> {}
 
 export class Thread extends React.PureComponent<ThreadProps, any> {}
 export class ChannelPreviewMessenger extends React.PureComponent<
@@ -927,3 +1321,47 @@ export function registerNativeHandlers(handlers: {
   pickImage(): Promise<any>;
   pickDocument(): Promise<any>;
 }): void;
+
+export interface Streami18nOptions {
+  language: string;
+  disableDateTimeTranslations?: boolean;
+  translationsForLanguage?: object;
+  debug?: boolean;
+  logger?(msg: string): any;
+  dayjsLocaleConfigForLanguage?: object;
+  DateTimeParser?(): object;
+  Moment?(): Object;
+}
+
+export interface Streami18nTranslators {
+  t: i18next.TFunction;
+  tDateTimeParser?(datetime?: string | number): object;
+}
+
+export class Streami18n {
+  constructor(options?: Streami18nOptions);
+
+  init(): Promise<Streami18nTranslators>;
+  validateCurrentLanguage(): void;
+  geti18Instance(): i18next.i18n;
+  getAvailableLanguages(): Array<string>;
+  getTranslations(): Array<string>;
+  getTranslators(): Promise<Streami18nTranslators>;
+  registerTranslation(
+    key: string,
+    translation: object,
+    customDayjsLocale?: Partial<ILocale>,
+  ): void;
+  addOrUpdateLocale(key: string, config: Partial<ILocale>): void;
+  setLanguage(language: string): Promise<void>;
+  localeExists(language: string): boolean;
+  registerSetLanguageCallback(callback: (t: i18next.TFunction) => void): void;
+}
+
+export const enTranslations: object;
+export const nlTranslations: object;
+export const ruTranslations: object;
+export const trTranslations: object;
+export const frTranslations: object;
+export const hiTranslations: object;
+export const itTranslations: object;

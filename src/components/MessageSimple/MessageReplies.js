@@ -3,6 +3,7 @@ import styled from '@stream-io/styled-components';
 import PropTypes from 'prop-types';
 
 import iconPath from '../../images/icons/icon_path.png';
+import { withTranslationContext } from '../../context';
 
 const Container = styled.TouchableOpacity`
   padding: 5px;
@@ -19,24 +20,32 @@ const MessageRepliesText = styled.Text`
 `;
 
 const MessageRepliesImage = styled.Image`
-  transform: ${({ pos }) =>
-    pos === 'left' ? 'rotateY(0deg)' : 'rotateY(180deg)'};
+  transform: ${({ alignment }) =>
+    alignment === 'left' ? 'rotateY(0deg)' : 'rotateY(180deg)'};
   ${({ theme }) => theme.message.replies.image.css}
 `;
 
-export const MessageReplies = ({ message, isThreadList, openThread, pos }) => {
+const MessageReplies = ({
+  message,
+  isThreadList,
+  openThread,
+  alignment,
+  t,
+}) => {
   if (isThreadList || !message.reply_count) return null;
 
   return (
     <Container onPress={openThread}>
-      {pos === 'left' ? (
-        <MessageRepliesImage source={iconPath} pos={pos} />
+      {alignment === 'left' ? (
+        <MessageRepliesImage source={iconPath} alignment={alignment} />
       ) : null}
       <MessageRepliesText>
-        {message.reply_count} {message.reply_count === 1 ? 'reply' : 'replies'}
+        {message.reply_count === 1
+          ? t('1 reply')
+          : t('{{ replyCount }} replies', { replyCount: message.reply_count })}
       </MessageRepliesText>
-      {pos === 'right' ? (
-        <MessageRepliesImage source={iconPath} pos={pos} />
+      {alignment === 'right' ? (
+        <MessageRepliesImage source={iconPath} alignment={alignment} />
       ) : null}
     </Container>
   );
@@ -50,5 +59,9 @@ MessageReplies.propTypes = {
   /** @see See [Channel Context](https://getstream.github.io/stream-chat-react-native/#channelcontext) */
   openThread: PropTypes.func,
   /** right | left */
-  pos: PropTypes.string,
+  alignment: PropTypes.oneOf(['right', 'left']),
 };
+
+const MessageRepliesWithContext = withTranslationContext(MessageReplies);
+
+export { MessageRepliesWithContext as MessageReplies };

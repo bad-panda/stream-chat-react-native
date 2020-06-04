@@ -40,16 +40,16 @@ const Message = withKeyboardContext(
       editing: PropTypes.oneOfType([PropTypes.object, PropTypes.bool]),
       /**
        * Message UI component to display a message in message list.
-       * Avaialble from [channel context](https://getstream.github.io/stream-chat-react-native/#channelcontext)
+       * Available from [channel context](https://getstream.github.io/stream-chat-react-native/#channelcontext)
        * */
       Message: PropTypes.oneOfType([PropTypes.node, PropTypes.elementType]),
       /**
        * Attachment UI component to display attachment in individual message.
-       * Avaialble from [channel context](https://getstream.github.io/stream-chat-react-native/#channelcontext)
+       * Available from [channel context](https://getstream.github.io/stream-chat-react-native/#channelcontext)
        * */
       Attachment: PropTypes.oneOfType([PropTypes.node, PropTypes.elementType]),
       /**
-       * Array of allowed actions on message. e.g. ['edit', 'delete', 'mute', 'flag']
+       * Array of allowed actions on message. e.g. ['edit', 'delete', 'reactions', 'reply']
        * If all the actions need to be disabled, empty array or false should be provided as value of prop.
        * */
       messageActions: PropTypes.oneOfType([PropTypes.bool, PropTypes.array]),
@@ -77,6 +77,14 @@ const Message = withKeyboardContext(
       onMessageTouch: PropTypes.func,
       /** Should keyboard be dismissed when messaged is touched */
       dismissKeyboardOnMessageTouch: PropTypes.bool,
+      /**
+       * @deprecated Please use `disabled` instead.
+       *
+       * Disables the message UI. Which means, message actions, reactions won't work.
+       */
+      readOnly: PropTypes.bool,
+      /** Disables the message UI. Which means, message actions, reactions won't work. */
+      disabled: PropTypes.bool,
     };
 
     static defaultProps = {
@@ -104,7 +112,7 @@ const Message = withKeyboardContext(
         shouldUpdate = true;
       }
 
-      // if lastreceivedId changesm, message should update.
+      // if lastreceivedId changes, message should update.
       if (
         !shouldUpdate &&
         !deepequal(nextProps.lastReceivedId, this.props.lastReceivedId)
@@ -117,17 +125,37 @@ const Message = withKeyboardContext(
         shouldUpdate = true;
       }
 
+      // editing is the last one which can trigger a change..
+      if (!shouldUpdate && nextProps.disabled !== this.props.disabled) {
+        shouldUpdate = true;
+      }
+
       return shouldUpdate;
     }
 
     isMyMessage = (message) => this.props.client.user.id === message.user.id;
-    isAdmin = () => this.props.client.user.role === 'admin';
+    isAdmin = () =>
+      this.props.client.user.role === 'admin' ||
+      (this.props.channel.state &&
+        this.props.channel.state.membership &&
+        this.props.channel.state.membership.role === 'admin');
+    isOwner = () =>
+      this.props.channel.state &&
+      this.props.channel.state.membership &&
+      this.props.channel.state.membership.role === 'owner';
+    isModerator = () =>
+      this.props.channel.state &&
+      this.props.channel.state.membership &&
+      (this.props.channel.state.membership.role === 'channel_moderator' ||
+        this.props.channel.state.membership.role === 'moderator');
 
     canEditMessage = () =>
-      this.isMyMessage(this.props.message) || this.isAdmin();
+      this.isMyMessage(this.props.message) ||
+      this.isModerator() ||
+      this.isOwner() ||
+      this.isAdmin();
 
-    canDeleteMessage = () =>
-      this.isMyMessage(this.props.message) || this.isAdmin();
+    canDeleteMessage = () => this.canEditMessage();
 
     handleFlag = async (event) => {
       event.preventDefault();
@@ -248,9 +276,13 @@ const Message = withKeyboardContext(
       if (dismissKeyboardOnMessageTouch) dismissKeyboard();
     };
 
-    getTotalReactionCount = () => {
+    getTotalReactionCount = (supportedReactions) => {
       const { emojiData } = this.props;
       let count = null;
+      if (!supportedReactions) {
+        supportedReactions = emojiData;
+      }
+
       const reactionCounts = this.props.message.reaction_counts;
 
       if (
@@ -260,7 +292,7 @@ const Message = withKeyboardContext(
       ) {
         count = 0;
         Object.keys(reactionCounts).map((key) => {
-          if (emojiData.find((e) => e.id === key)) {
+          if (supportedReactions.find((e) => e.id === key)) {
             count += reactionCounts[key];
           }
 
@@ -309,6 +341,7 @@ const Message = withKeyboardContext(
             handleRetry={this.handleRetry}
             isMyMessage={this.isMyMessage}
             isAdmin={this.isAdmin}
+            isModerator={this.isModerator}
             canEditMessage={this.canEditMessage}
             canDeleteMessage={this.canDeleteMessage}
             handleEdit={this.handleEdit}

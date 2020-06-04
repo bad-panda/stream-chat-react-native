@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 
 import styled from '@stream-io/styled-components';
 import { Avatar } from './Avatar';
+import { emojiData } from '../utils';
 
 const Container = styled.TouchableOpacity`
   flex: 1;
@@ -49,6 +50,7 @@ export const ReactionPicker = themed(
     static themePath = 'message.reactionPicker';
 
     static propTypes = {
+      hideReactionCount: PropTypes.bool,
       hideReactionOwners: PropTypes.bool,
       reactionPickerVisible: PropTypes.bool,
       handleDismiss: PropTypes.func,
@@ -58,7 +60,16 @@ export const ReactionPicker = themed(
       rpLeft: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       rpTop: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       rpRight: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-      emojiData: PropTypes.array,
+      supportedReactions: PropTypes.array,
+    };
+
+    static defaultProps = {
+      hideReactionCount: false,
+      hideReactionOwners: false,
+      supportedReactions: emojiData,
+      rpTop: 40,
+      rpLeft: 30,
+      rpRight: 10,
     };
 
     constructor(props) {
@@ -82,6 +93,7 @@ export const ReactionPicker = themed(
 
     render() {
       const {
+        hideReactionCount,
         hideReactionOwners,
         reactionPickerVisible,
         handleDismiss,
@@ -91,7 +103,7 @@ export const ReactionPicker = themed(
         rpLeft,
         rpTop,
         rpRight,
-        emojiData,
+        supportedReactions,
       } = this.props;
 
       if (!reactionPickerVisible) return null;
@@ -123,7 +135,7 @@ export const ReactionPicker = themed(
                   ...position,
                 }}
               >
-                {emojiData.map(({ id, icon }) => {
+                {supportedReactions.map(({ id, icon }) => {
                   const latestUser = this.getLatestUser(latestReactions, id);
                   const count = reactionCounts && reactionCounts[id];
                   return (
@@ -153,7 +165,9 @@ export const ReactionPicker = themed(
                       >
                         {icon}
                       </Emoji>
-                      <ReactionCount>{count > 0 ? count : ''}</ReactionCount>
+                      {!hideReactionCount && (
+                        <ReactionCount>{count > 0 ? count : ''}</ReactionCount>
+                      )}
                     </Column>
                   );
                 })}

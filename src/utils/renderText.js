@@ -52,4 +52,13 @@ const defaultMarkdownStyles = {
     color: 'blue',
     textDecorationLine: 'underline',
   },
+  inlineCode: {
+    backgroundColor: '#F3F3F3',
+    borderColor: '#dddddd',
+    color: 'red',
+    fontSize: 13,
+    padding: 3,
+    paddingLeft: 5,
+    paddingRight: 5,
+  },
 };
