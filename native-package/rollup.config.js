@@ -38,7 +38,7 @@ const normalBundle = {
     'stream-chat-react-native-core',
     '@react-native-community/netinfo',
     'react-native-document-picker',
-    'react-native-image-picker',
+    '@gifyourgame/react-native-image-picker',
     'es6-symbol',
   ],
   plugins: [
