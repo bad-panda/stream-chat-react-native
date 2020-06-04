@@ -1,5 +1,282 @@
 # Changelog
 
+## [0.10.3] 2020-05-15
+
+- Updating `stream-chat` to `1.10.1` in add [token refresh functionality](https://github.com/GetStream/stream-chat-js/blob/master/docs/userToken.md)
+- Disable longPress on Image gallery [f7aacb5](https://github.com/GetStream/stream-chat-react-native/commit/f7aacb5741e85811de37d5e3b550d2be539b89a4)
+- Fixing markdown issue [ac621f0](https://github.com/GetStream/stream-chat-react-native/commit/ac621f0eb1f6be7f0496b82ee425f3bc90c10839)
+
+## [0.10.2] 2020-04-29
+
+- Fixing crashes in KeyboardCompatibleView and better handling of AppState changes
+  - https://github.com/GetStream/stream-chat-react-native/pull/193
+  - [84cf8f7](https://github.com/GetStream/stream-chat-react-native/commit/84cf8f772d454b471c0e9ad81a10acd219ba6be2)
+
+- Fixes with message component [2d21b19](https://github.com/GetStream/stream-chat-react-native/commit/2d21b19ad3856f516efcc3c0a19c52f145f7fcec)
+
+   - Adding support for prop `additionalTouchableProps` in `MessageSimple` to allow adding additional prop to inner TouchableOpacity components
+   - Same (additionalTouchableProps) prop gets forwarded to all inner components which has some touchable feedback attached such as Gallery, FileAttachment, etc
+
+- Adding `setFlatListRef` function prop to ChannelList and MessageList to get access to ref to inner FlatList component [4c49373](https://github.com/GetStream/stream-chat-react-native/commit/4c4937334c10e71a918d360bf6c95daf74222b5b)
+- Fix for threadMessages in event handler for Channel component - [17f32df](https://github.com/GetStream/stream-chat-react-native/commit/17f32df69cb06237e9c5590a3745a3d557c56b1b)
+- Adding margin for very last MessageSystem [f4661d6](https://github.com/GetStream/stream-chat-react-native/commit/f4661d6ec842d6a1a797d01a5953125a7fb1f863)
+- Hiding AttachButton if both `hasImagePicker` and `hasFilePicker` props are false [7de46b5](https://github.com/GetStream/stream-chat-react-native/commit/7de46b55b7f431df4d957bf9502af370c6221782)
+- Fixing custom reactions [5deea55](https://github.com/GetStream/stream-chat-react-native/commit/5deea5529a0647f42e259185b547b24effc9c15f)
+
+
+## [0.10.1] 2020-04-15
+
+- Adding following theme keys [7ae43d4](https://github.com/GetStream/stream-chat-react-native/commit/7ae43d4d1788b14ee9cd7c6d0f3d6d49ac5ebdf5)
+  - messageInput.suggestions.command.args
+  - messageInput.suggestions.command.description
+
+- Handling `channel.hidden` event in  `ChannelList` component
+- Adding support for function prop `onChannelHidde` on `ChannelList`
+- Avoid breaking markRead api call if channel is disconnected [a1cfd96](https://github.com/GetStream/stream-chat-react-native/commit/a1cfd96ebfcd2859164c60a0535abe8791f826ac)
+- Updating `stream-chat` version to `1.7.3`
+- Fixing the error: `[Unhandled promise rejection: TypeError: mimeType.startsWith is not a function. (In 'mimeType.startsWith('image/')', 'mimeType.startsWith' is undefined)]` [451b2a4](https://github.com/GetStream/stream-chat-react-native/commit/451b2a4e19ad202f5c5f428b369301ee312e0c3f)
+
+## [0.10.0] 2020-04-09
+
+**All the changes are non-breaking**
+
+- Adding support for custom UI component prop - `Input` to `MessageInput`. It allows shuffling of UI inside MessageInput
+
+- Adding support for following UI component props to `MessageSimple`
+
+  - UrlPreview
+  - Giphy
+  - FileAttachment
+  - FileAttachmentGroup
+  - Card
+  - CardHeader
+  - CardCover
+  - CardFooter
+
+- Adding support for following UI component props to `Attachment`
+
+  - UrlPreview
+  - Giphy
+  - FileAttachment
+  - FileAttachmentGroup
+  - Card
+  - CardHeader
+  - CardCover
+  - CardFooter
+
+- Adding support for following UI component props to `Card`
+
+  - Header
+  - Cover
+  - Footer
+
+- Adding following theme keys:
+
+  - `message.card.footer.title` (Text)
+  - `message.card.footer.description` (Text)
+  - `message.card.footer.link` (Text)
+  - `message.card.footer.logo` (Image)
+  - `iconSquare.container` (TouchableOpacity or View)
+
+- Fixing typos in docs
+- Updating format of message date time to `LT` from `hh:ssA`, to allow i18n
+- Fixing pagination logic for ChannelList in case of duplicates
+
+## [0.9.2] 2020-04-04
+
+**NOTE** Please make sure to use `stream-chat@^1.7.0`
+
+- Fixing moderator, owner, admin checks for message actions [80dfb86](https://github.com/GetStream/stream-chat-react-native/commit/80dfb86ff7f07d1eb223be0c766eef991fb438db)
+
+## [0.9.1] 2020-04-02
+
+- Adding support for following props on MessageInput component [c5ada59](https://github.com/GetStream/stream-chat-react-native/commit/c5ada5951a9528eaab7945bf4ed2e74b4c9724f2)
+
+  - onChangeText
+  - initialValue
+
+## [0.9.0] 2020-04-02
+
+- Disabling (disabling `TouchableOpacity` wrapper) `SendButton` if message is not valid (empty text and no attachments)
+- Syncing this `rc` with latest master (0.8.1)
+- Moving external expo dependencies to peerDependencies
+- Fixing issue with MessageStatus not showing up on mount [61388c3](https://github.com/GetStream/stream-chat-react-native/commit/61388c3ac4f80cf264bda3fc3a5fed2f7ede9761)
+
+### Prop changes to components (non-breaking)
+
+- MessageSimple
+
+  **new props**
+
+  - `MessageReplies` UI component to override default `2 replies` text/component
+  - `MessageHeader` UI component to add some content on top of message content (text, attachments)
+  - `ReactionList` UI component to override default ReactionList component
+  - `supportedReactions` Array of reactions which should be available or supported in reaction picker. [Example](https://github.com/GetStream/stream-chat-react-native/blob/vishal/docs-improvement/docs/cookbook.md#message-with-custom-reactions)
+
+  **deprecated props**
+
+  - `emojiDate` Please use supportedReactions instead
+
+- MessageAvatar
+
+  **new props**
+
+  - `alignment` ('right' | 'left')
+
+- MessageContent
+
+  **new props**
+
+  - All the new props to MessageSimple are available in MessageContent
+  - `alignment` ('right' | 'left')
+
+- ReactionPickerWrapper
+
+  In previous version, you could open reaction picker only after clicking/pressing `ReactionList`, which made it hard to change the
+  functionality of `ReactionList` without copy pasting lots of code regarding opening of `ReactionPicker`. And also ReactionPicker
+  logic was tightly coupled with MessageContent component (which meant added complexity)
+  With ReactionPickerWrapper, we are taking out all the ReactionPicker related logic (setting the position of reaction picker
+  at message which was touched) from MessageContent. So you can now add _open reaction picker on press_ functionality
+  on any component that you wish. You just need to wrap your component with `ReactionPickerWrapper` component.
+
+  You can also adjust the relative position at which ReactionPicker opens up or shows up by altering `offset`
+  prop on ReactionPickerWrapper.
+
+  Default value is:
+
+  ```
+  {
+      top: 40,
+      left: 30,
+      right: 10,
+  }
+  ```
+
+  NOTE: This component was present in repository in previous versions as well, but it was super buggy.
+
+  **TL;DR** Enables you to build custom ReactionList, on touch of which, ReactionPicker will open up
+
+  Please check this example from cookbook for details - https://github.com/GetStream/stream-chat-react-native/blob/vishal/docs-improvement/docs/cookbook.md#message-bubble-with-reactions-at-bottom-of-message
+
+- Channel
+
+  - Update the component, when `channel` prop changes.
+
+
+## [0.9.0-rc.3] 2020-04-02
+
+- Fixing issue with MessageStatus not showing up on mount [61388c3](https://github.com/GetStream/stream-chat-react-native/commit/61388c3ac4f80cf264bda3fc3a5fed2f7ede9761)
+
+## [0.9.0-rc.2] 2020-04-02
+
+- Moving external expo dependencies to peerDependencies
+
+## [0.9.0-rc.1] 2020-04-02
+
+- Disabling (disabling `TouchableOpacity` wrapper) `SendButton` if message is not valid (empty text and no attachments)
+- Syncing this `rc` with latest master (0.8.1)
+
+## [0.8.1] 2020-04-01
+
+- Disabling interactions with MessageList and MessageInput if channel is frozen. [2c4e1a2](https://github.com/GetStream/stream-chat-react-native/commit/2c4e1a2713825b861717e002da483c182e80213c)
+- Adding missing `style` to all our component in typescript [a2ac0b4](https://github.com/GetStream/stream-chat-react-native/commit/a2ac0b44882913db065e8099bd03a7b286255d47)
+
+## [0.9.0-rc.0] 2020-03-31
+
+### Non-breaking changes
+
+- MessageSimple
+
+  **new props**
+
+  - `MessageReplies` UI component to override default `2 replies` text/component
+  - `MessageHeader` UI component to add some content on top of message content (text, attachments)
+  - `ReactionList` UI component to override default ReactionList component
+  - `supportedReactions` Array of reactions which should be available or supported in reaction picker. [Example](https://github.com/GetStream/stream-chat-react-native/blob/vishal/docs-improvement/docs/cookbook.md#message-with-custom-reactions)
+
+  **deprecated props**
+
+  - `emojiDate` Please use supportedReactions instead
+
+- MessageAvatar
+
+  **new props**
+
+  - `alignment` ('right' | 'left')
+
+- MessageContent
+
+  **new props**
+
+  - All the new props to MessageSimple are available in MessageContent
+  - `alignment` ('right' | 'left')
+
+- ReactionPickerWrapper
+
+  In previous version, you could open reaction picker only after clicking/pressing `ReactionList`, which made it hard to change the
+  functionality of `ReactionList` without copy pasting lots of code regarding opening of `ReactionPicker`. And also ReactionPicker
+  logic was tightly coupled with MessageContent component (which meant added complexity)
+  With ReactionPickerWrapper, we are taking out all the ReactionPicker related logic (setting the position of reaction picker
+  at message which was touched) from MessageContent. So you can now add _open reaction picker on press_ functionality
+  on any component that you wish. You just need to wrap your component with `ReactionPickerWrapper` component.
+
+  You can also adjust the relative position at which ReactionPicker opens up or shows up by altering `offset`
+  prop on ReactionPickerWrapper.
+
+  Default value is:
+
+  ```
+  {
+      top: 40,
+      left: 30,
+      right: 10,
+  }
+  ```
+
+  NOTE: This component was present in repository in previous versions as well, but it was super buggy.
+
+  **TL;DR** Enables you to build custom ReactionList, on touch of which, ReactionPicker will open up
+
+  Please check this example from cookbook for details - https://github.com/GetStream/stream-chat-react-native/blob/vishal/docs-improvement/docs/cookbook.md#message-bubble-with-reactions-at-bottom-of-message
+
+- Channel
+
+  - Update the component, when `channel` prop changes.
+
+## [0.8.0] 2020-03-30
+
+- Replacing momentjs with dayjs
+  - [8294baf](https://github.com/GetStream/stream-chat-react-native/commit/8294bafcdfcb6078cd8f3a18690da70aa5b93539)
+  - [a81e69e](https://github.com/GetStream/stream-chat-react-native/commit/a81e69ef18d0ad8c2257a52ca3c14fb168fdc577)
+  - [0a119bd](https://github.com/GetStream/stream-chat-react-native/commit/0a119bde5b9105448aa1fadc605e778099fa02ce)
+- Changes to `Streami18n` constructor options:
+  - **Breaking change:** replacing `momentLocaleConfigForLanguage` with `dayjsLocaleConfigForLanguage`
+  - deprecating `Moment`. Instead use `DateTimeParser`
+- Updating `stream-chat` to `1.6.0` [b62fa95](https://github.com/GetStream/stream-chat-react-native/commit/b62fa9542bc82192a4ffc7a9e9bf61b52155c932)
+- Avoid showing empty cover if image url is empty [ddbbadb](https://github.com/GetStream/stream-chat-react-native/commit/ddbbadba8f125cca6196495ceaf5d9442afb4fdb)
+- Subscribing ChannelList to `user.updated` event [7ea6110](https://github.com/GetStream/stream-chat-react-native/commit/7ea6110c0238319833033e39356b7b2055164ea2)
+- Fixing channel.updated and channel.deleted event handler to not break if channel is not in list [1404860](https://github.com/GetStream/stream-chat-react-native/commit/140486018f8eecf17d2bea27bdc65f26360aa016)
+
+## [0.7.2] 2020-03-20
+
+- Extending style support for `TypingIndicator` component, [5874b73](https://github.com/GetStream/stream-chat-react-native/commit/5874b7368890fd1de5247b521381f3e076201fec)
+- Added styling support for editing box of `MessageInput`. [2968684](https://github.com/GetStream/stream-chat-react-native/commit/2968684d459bbeeb16bf836c0de731eda5807aaf)
+- Adding prop `doMarkReadRequest` to Channel component, to override markRead api call. [1afda94](https://github.com/GetStream/stream-chat-react-native/commit/1afda948360eb80a4af763111b5bb4de86744f25)
+- Adding boolean prop `hideReactionCount` and `hideReactionOwners` in `MessageSimple` component. [3814266](https://github.com/GetStream/stream-chat-react-native/commit/38142667fb3290b4c81495a5a92fbfda7856bfe4)
+- `MessageInput` and `MessageList` component as prop in `Thread` component. [db97289](https://github.com/GetStream/stream-chat-react-native/commit/db97289f7f79c055816cfdc6377b590076e178ee)
+- Disabling keyboard listeners when app goes to background [8a372e6](https://github.com/GetStream/stream-chat-react-native/commit/8a372e62f56cdd9389d73dfc4ab5ba8d5077a37e)
+- Dismiss keyboard when opening actionsheet. [bb12a55](https://github.com/GetStream/stream-chat-react-native/commit/bb12a55c9125c6168289f642f10d0340ea3b3abe)
+- Disable escaping in translator function. [a5118dc](https://github.com/GetStream/stream-chat-react-native/commit/a5118dc9606878242de3a2c9015a88fc6ccd7021)
+- Allow moderator to edit/delete message. [44165f6](https://github.com/GetStream/stream-chat-react-native/commit/44165f677d5883ab53c908a615bbd914ccb9401b)
+
+## [0.7.1] 2020-03-18
+
+- Adding support for custom moment object in Streami18n class [7557c70](https://github.com/GetStream/stream-chat-react-native/commit/7557c70687181d40db3f6f0dda7ddf86c063abd5)
+
+## [0.7.0] 2020-03-17
+
+- Introducing internationalisation (i18n) support for the sdk https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/docs/Streami18n.md
+
 ## [0.6.6] 2020-02-20
 
 - Adding following props to KeyboardCompatibleView component [6650109](https://github.com/GetStream/stream-chat-react-native/commit/6650109669cdd13c3b2a5bc59cc235d7a2796b3e)
@@ -167,7 +444,7 @@
 ## [0.3.4] 2019-10-03
 
 - Avoiding query channel api call when there are no more messages to render
-- Making mardRead api call only if unread count is > 0
+- Making markRead api call only if unread count is > 0
 
 ## [0.3.3] 2019-10-02
 
@@ -221,7 +498,7 @@
 
 ## [0.1.19] 2019-08-26
 
-- Updating ChannePreviewMessanger component to show other member's name as channel title if channel has no explicate name in channel.data
+- Updating ChannelPreviewMessenger component to show other member's name as channel title if channel has no explicate name in channel.data
 
 ## [0.1.18] 2019-08-12
 

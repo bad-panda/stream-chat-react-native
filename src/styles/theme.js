@@ -29,7 +29,22 @@ export const defaultTheme = {
     text: {},
     fallback: {},
   },
-
+  channelListHeaderErrorIndicator: {
+    container: {},
+    errorText: {},
+  },
+  channelListHeaderNetworkDownIndicator: {
+    container: {},
+    errorText: {},
+  },
+  channelListFooterLoadingIndicator: {
+    container: {},
+  },
+  loadingErrorIndicator: {
+    container: {},
+    errorText: {},
+    retryText: {},
+  },
   channelPreview: {
     container: {},
     details: {},
@@ -53,6 +68,10 @@ export const defaultTheme = {
     icon: {},
     iconInner: {},
     unreadCount: {},
+  },
+
+  iconSquare: {
+    container: {},
   },
 
   message: {
@@ -105,6 +124,7 @@ export const defaultTheme = {
       details: {},
       title: {},
       size: {},
+      icon: {},
     },
     actions: {
       container: {},
@@ -122,7 +142,12 @@ export const defaultTheme = {
     card: {
       container: {},
       cover: {},
-      footer: {},
+      footer: {
+        title: {},
+        description: {},
+        link: {},
+        logo: {},
+      },
     },
 
     gallery: {
@@ -172,6 +197,9 @@ export const defaultTheme = {
     },
     inputBox: {},
     inputBoxContainer: {},
+    editingBoxContainer: {},
+    editingBoxHeader: {},
+    editingBoxHeaderTitle: {},
     attachButton: {},
     attachButtonIcon: {},
     sendButton: {},
@@ -205,6 +233,8 @@ export const defaultTheme = {
         container: {},
         top: {},
         title: {},
+        args: {},
+        description: {},
       },
     },
     actionSheet: {
@@ -258,6 +288,7 @@ export const defaultTheme = {
       fontSize: 14,
       color: Colors.textGrey,
     },
+    container: {},
   },
 };
 

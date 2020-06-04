@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@stream-io/styled-components';
 import PropTypes from 'prop-types';
+import { withTranslationContext } from '../context';
 
 const InputBox = styled.TextInput`
   max-height: 60px;
@@ -9,7 +10,7 @@ const InputBox = styled.TextInput`
   ${({ theme }) => theme.messageInput.inputBox.css}
 `;
 
-export class AutoCompleteInput extends React.PureComponent {
+class AutoCompleteInput extends React.PureComponent {
   static propTypes = {
     value: PropTypes.string,
     /** @see See [suggestions context](https://getstream.github.io/stream-chat-react-native/#suggestionscontext) */
@@ -33,7 +34,7 @@ export class AutoCompleteInput extends React.PureComponent {
   };
 
   static defaultProps = {
-    value: '',
+    value: undefined,
   };
 
   constructor(props) {
@@ -255,14 +256,16 @@ export class AutoCompleteInput extends React.PureComponent {
       if (!this.isTrackingStarted) this.startTracking();
       // console.log('from handle suggestions: ' + currentTrigger);
       this.updateSuggestions(actualToken);
-    });
+    }, 100);
   };
 
   render() {
+    const { t } = this.props;
+
     return (
       <InputBox
         ref={this.props.setInputBoxRef}
-        placeholder="Write your message"
+        placeholder={t('Write your message')}
         onChangeText={(text) => {
           this.handleChange(text);
         }}
@@ -274,3 +277,6 @@ export class AutoCompleteInput extends React.PureComponent {
     );
   }
 }
+
+const AutoCompleteInputWithContext = withTranslationContext(AutoCompleteInput);
+export { AutoCompleteInputWithContext as AutoCompleteInput };

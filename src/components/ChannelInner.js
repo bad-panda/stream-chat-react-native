@@ -1,6 +1,6 @@
 import React, { PureComponent } from 'react';
 import { View, Text } from 'react-native';
-import { ChannelContext } from '../context';
+import { ChannelContext, withTranslationContext } from '../context';
 import { SuggestionsProvider } from './SuggestionsProvider';
 
 import uuidv4 from 'uuid/v4';
@@ -19,46 +19,10 @@ import { logChatPromiseExecution } from 'stream-chat';
  * This component is not really exposed externally, and is only supposed to be used with
  * 'Channel' component (which is actually exposed to customers).
  */
-export class ChannelInner extends PureComponent {
+class ChannelInner extends PureComponent {
   constructor(props) {
     super(props);
-    this.state = {
-      error: false,
-      // Loading the intial content of the channel
-      loading: true,
-      // Loading more messages
-      loadingMore: false,
-      hasMore: true,
-      messages: Immutable([]),
-      online: props.isOnline,
-      typing: Immutable({}),
-      watchers: Immutable({}),
-      members: Immutable({}),
-      read: Immutable({}),
-      thread: props.thread,
-      threadMessages: [],
-      threadLoadingMore: false,
-      threadHasMore: true,
-      kavEnabled: true,
-      /** We save the events in state so that we can display event message
-       * next to the message after which it was received, in MessageList.
-       *
-       * e.g., eventHistory = {
-       *   message_id_1: [
-       *     { ...event_obj_received_after_message_id_1__1 },
-       *     { ...event_obj_received_after_message_id_1__2 },
-       *     { ...event_obj_received_after_message_id_1__3 },
-       *   ],
-       *   message_id_2: [
-       *     { ...event_obj_received_after_message_id_2__1 },
-       *     { ...event_obj_received_after_message_id_2__2 },
-       *     { ...event_obj_received_after_message_id_2__3 },
-       *   ]
-       * }
-       */
-      eventHistory: {},
-    };
-
+    this.state = this.getInitialStateFromProps(props);
     // hard limit to prevent you from scrolling faster than 1 page per 2 seconds
     this._loadMoreFinishedDebounced = debounce(this.loadMoreFinished, 2000, {
       leading: true,
@@ -123,10 +87,27 @@ export class ChannelInner extends PureComponent {
     isOnline: PropTypes.bool,
     Message: PropTypes.oneOfType([PropTypes.node, PropTypes.elementType]),
     Attachment: PropTypes.oneOfType([PropTypes.node, PropTypes.elementType]),
-    /** Override send message request (Advanced usage only) */
+    /**
+     * Override mark channel read request (Advanced usage only)
+     *
+     * @param channel Channel object
+     * */
+    doMarkReadRequest: PropTypes.func,
+    /**
+     * Override send message request (Advanced usage only)
+     *
+     * @param channelId
+     * @param messageData Message object
+     * */
     doSendMessageRequest: PropTypes.func,
-    /** Override update message request (Advanced usage only) */
+    /**
+     * Override update message request (Advanced usage only)
+     * @param channelId
+     * @param updatedMessage UpdatedMessage object
+     * */
     doUpdateMessageRequest: PropTypes.func,
+    /** Disables the channel UI if channel is frozen */
+    disableIfFrozenChannel: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -137,7 +118,7 @@ export class ChannelInner extends PureComponent {
     logger: () => {},
   };
 
-  componentDidUpdate(prevProps) {
+  async componentDidUpdate(prevProps) {
     this.props.logger('Channel component', 'componentDidUpdate', {
       tags: ['lifecycle', 'channel'],
       props: this.props,
@@ -148,15 +129,54 @@ export class ChannelInner extends PureComponent {
       if (this._unmounted) return;
       this.setState({ online: this.props.isOnline });
     }
+
+    if (this.props.channel.id !== prevProps.channel.id) {
+      const resetState = this.getInitialStateFromProps(this.props);
+      this.setState(resetState);
+      await this.initChannel();
+    }
   }
 
-  async componentDidMount() {
-    this.props.logger('Channel component', 'componentDidMount', {
-      tags: ['lifecycle', 'channel'],
-      props: this.props,
-      state: this.state,
-    });
+  getInitialStateFromProps(props) {
+    return {
+      error: false,
+      // Loading the intial content of the channel
+      loading: true,
+      // Loading more messages
+      loadingMore: false,
+      hasMore: true,
+      messages: Immutable([]),
+      online: props.isOnline,
+      typing: Immutable({}),
+      watchers: Immutable({}),
+      members: Immutable({}),
+      read: Immutable({}),
+      thread: props.thread,
+      threadMessages: [],
+      threadLoadingMore: false,
+      threadHasMore: true,
+      kavEnabled: true,
+      /** We save the events in state so that we can display event message
+       * next to the message after which it was received, in MessageList.
+       *
+       * e.g., eventHistory = {
+       *   message_id_1: [
+       *     { ...event_obj_received_after_message_id_1__1 },
+       *     { ...event_obj_received_after_message_id_1__2 },
+       *     { ...event_obj_received_after_message_id_1__3 },
+       *   ],
+       *   message_id_2: [
+       *     { ...event_obj_received_after_message_id_2__1 },
+       *     { ...event_obj_received_after_message_id_2__2 },
+       *     { ...event_obj_received_after_message_id_2__3 },
+       *   ]
+       * }
+       */
+      eventHistory: {},
+    };
+  }
 
+  async initChannel() {
     const channel = this.props.channel;
     let errored = false;
     if (!channel.initialized) {
@@ -174,6 +194,15 @@ export class ChannelInner extends PureComponent {
       this.copyChannelState();
       this.listenToChanges();
     }
+  }
+
+  async componentDidMount() {
+    this.props.logger('Channel component', 'componentDidMount', {
+      tags: ['lifecycle', 'channel'],
+      props: this.props,
+      state: this.state,
+    });
+    await this.initChannel();
   }
 
   componentWillUnmount() {
@@ -210,10 +239,20 @@ export class ChannelInner extends PureComponent {
   }
 
   markRead = () => {
-    if (!this.props.channel.getConfig().read_events) {
+    if (
+      this.props.channel.disconnected ||
+      !this.props.channel.getConfig().read_events
+    ) {
       return;
     }
-    logChatPromiseExecution(this.props.channel.markRead(), 'mark read');
+
+    const { doMarkReadRequest, channel } = this.props;
+
+    if (doMarkReadRequest) {
+      doMarkReadRequest(channel);
+    } else {
+      logChatPromiseExecution(channel.markRead(), 'mark read');
+    }
   };
 
   listenToChanges() {
@@ -463,7 +502,9 @@ export class ChannelInner extends PureComponent {
     let threadMessages = [];
     const threadState = {};
     if (this.state.thread) {
-      threadMessages = channel.state.threads[this.state.thread.id] || [];
+      threadMessages =
+        channel.state.threads[this.state.thread.id] ||
+        this.state.threadMessages;
       threadState['threadMessages'] = threadMessages;
     }
 
@@ -604,6 +645,10 @@ export class ChannelInner extends PureComponent {
     closeThread: this.closeThread,
     loadMoreThread: this.loadMoreThread,
     emojiData: this.props.emojiData,
+    disabled:
+      this.props.channel.data &&
+      this.props.channel.data.frozen &&
+      this.props.disableIfFrozenChannel,
   });
 
   renderComponent = () => this.props.children;
@@ -620,7 +665,7 @@ export class ChannelInner extends PureComponent {
 
   render() {
     let core;
-    const { KeyboardCompatibleView } = this.props;
+    const { KeyboardCompatibleView, t } = this.props;
     if (this.state.error) {
       this.props.logger(
         'Channel component',
@@ -639,7 +684,7 @@ export class ChannelInner extends PureComponent {
     } else if (!this.props.channel || !this.props.channel.watch) {
       core = (
         <View>
-          <Text>Channel Missing</Text>
+          <Text>{t('Channel Missing')}</Text>
         </View>
       );
     } else {
@@ -664,3 +709,7 @@ export class ChannelInner extends PureComponent {
     return <View>{core}</View>;
   }
 }
+
+const ChannelInnerWithContext = withTranslationContext(ChannelInner);
+
+export { ChannelInnerWithContext as ChannelInner };

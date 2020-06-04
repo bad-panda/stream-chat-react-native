@@ -6,6 +6,7 @@ import { MessageAvatar as DefaultMessageAvatar } from './MessageAvatar';
 import { MessageContent as DefaultMessageContent } from './MessageContent';
 import { MessageStatus as DefaultMessageStatus } from './MessageStatus';
 import { MessageSystem as DefaultMessageSystem } from '../MessageSystem';
+import { emojiData } from '../../utils';
 
 import PropTypes from 'prop-types';
 
@@ -64,12 +65,92 @@ export const MessageSimple = themed(
         PropTypes.node,
         PropTypes.elementType,
       ]),
+      /**
+       * Custom UI component to display reaction list.
+       * Defaults to: https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/ReactionList.js
+       */
+      ReactionList: PropTypes.oneOfType([
+        PropTypes.node,
+        PropTypes.elementType,
+      ]),
       /** Custom UI component for message text */
       MessageText: PropTypes.oneOfType([PropTypes.node, PropTypes.elementType]),
+      /**
+       * Custom UI component to display enriched url preview.
+       * Deaults to https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/Card.js
+       */
+      UrlPreview: PropTypes.oneOfType([PropTypes.node, PropTypes.elementType]),
+      /**
+       * Custom UI component to display Giphy image.
+       * Deaults to https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/Card.js
+       */
+      Giphy: PropTypes.oneOfType([PropTypes.node, PropTypes.elementType]),
+      /**
+       * Custom UI component to display group of File type attachments or multiple file attachments (in single message).
+       * Deaults to https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/FileAttachmentGroup.js
+       */
+      FileAttachmentGroup: PropTypes.oneOfType([
+        PropTypes.node,
+        PropTypes.elementType,
+      ]),
+      /**
+       * Custom UI component to display File type attachment.
+       * Deaults to https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/FileAttachment.js
+       */
+      FileAttachment: PropTypes.oneOfType([
+        PropTypes.node,
+        PropTypes.elementType,
+      ]),
+      /**
+       * Custom UI component for attachment icon for type 'file' attachment.
+       * Defaults to: https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/FileIcon.js
+       */
+      AttachmentFileIcon: PropTypes.oneOfType([
+        PropTypes.node,
+        PropTypes.elementType,
+      ]),
+      /**
+       * Custom UI component to display image attachments.
+       * Deaults to https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/Gallery.js
+       */
+      Gallery: PropTypes.oneOfType([PropTypes.node, PropTypes.elementType]),
+      /**
+       * Custom UI component to display generic media type e.g. giphy, url preview etc
+       * Deaults to https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/Card.js
+       */
+      Card: PropTypes.oneOfType([PropTypes.node, PropTypes.elementType]),
+      /**
+       * Custom UI component to override default header of Card component.
+       * Accepts the same props as Card component.
+       */
+      CardHeader: PropTypes.oneOfType([PropTypes.node, PropTypes.elementType]),
+      /**
+       * Custom UI component to override default cover (between Header and Footer) of Card component.
+       * Accepts the same props as Card component.
+       */
+      CardCover: PropTypes.oneOfType([PropTypes.node, PropTypes.elementType]),
+      /**
+       * Custom UI component to override default Footer of Card component.
+       * Accepts the same props as Card component.
+       */
+      CardFooter: PropTypes.oneOfType([PropTypes.node, PropTypes.elementType]),
+      /**
+       * Custom UI component to display attachment actions. e.g., send, shuffle, cancel in case of giphy
+       * Deaults to https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/AttachmentActions.js
+       */
+      AttachmentActions: PropTypes.oneOfType([
+        PropTypes.node,
+        PropTypes.elementType,
+      ]),
       /** enabled reactions, this is usually set by the parent component based on channel configs */
       reactionsEnabled: PropTypes.bool.isRequired,
       /** enabled replies, this is usually set by the parent component based on channel configs */
       repliesEnabled: PropTypes.bool.isRequired,
+      /**
+       * Array of allowed actions on message. e.g. ['edit', 'delete', 'reactions', 'reply']
+       * If all the actions need to be disabled, empty array or false should be provided as value of prop.
+       * */
+      messageActions: PropTypes.oneOfType([PropTypes.bool, PropTypes.array]),
       /**
        * Handler to open the thread on message. This is callback for touch event for replies button.
        *
@@ -158,6 +239,10 @@ export const MessageSimple = themed(
       handleAction: PropTypes.func,
       /** Handler resend the message. */
       handleRetry: PropTypes.func,
+      // enable hiding reaction count from reaction picker
+      hideReactionCount: PropTypes.bool,
+      /** enable hiding reaction owners from reaction picker. */
+      hideReactionOwners: PropTypes.bool,
       /** Current [message object](https://getstream.io/chat/docs/#message_format) */
       message: PropTypes.object,
       /**
@@ -187,6 +272,7 @@ export const MessageSimple = themed(
        * */
       forceAlign: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
       showMessageStatus: PropTypes.bool,
+      showReactionsList: PropTypes.bool,
       /** Latest message id on current channel */
       lastReceivedId: PropTypes.string,
       /**
@@ -195,14 +281,41 @@ export const MessageSimple = themed(
        */
       actionSheetStyles: PropTypes.object,
       /**
-       * Custom UI component for attachment icon for type 'file' attachment.
-       * Defaults to: https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/FileIcon.js
+       * Provide any additional props for `TouchableOpacity` which wraps inner MessageContent component here.
+       * Please check docs for TouchableOpacity for supported props - https://reactnative.dev/docs/touchableopacity#props
        */
-      AttachmentFileIcon: PropTypes.oneOfType([
-        PropTypes.node,
-        PropTypes.elementType,
-      ]),
+      additionalTouchableProps: PropTypes.object,
       formatDate: PropTypes.func,
+      /**
+       * e.g.,
+       * [
+       *  {
+       *    id: 'like',
+       *    icon: '👍',
+       *  },
+       *  {
+       *    id: 'love',
+       *    icon: '❤️️',
+       *  },
+       *  {
+       *    id: 'haha',
+       *    icon: '😂',
+       *  },
+       *  {
+       *    id: 'wow',
+       *    icon: '😮',
+       *  },
+       * ]
+       */
+      supportedReactions: PropTypes.array,
+      /*
+       * @deprecated Please use `disabled` instead.
+       *
+       * Disables the message UI. Which means, message actions, reactions won't work.
+       */
+      readOnly: PropTypes.bool,
+      /** Disables the message UI. Which means, message actions, reactions won't work. */
+      disabled: PropTypes.bool,
     };
 
     static defaultProps = {
@@ -214,6 +327,34 @@ export const MessageSimple = themed(
       MessageContent: DefaultMessageContent,
       MessageStatus: DefaultMessageStatus,
       MessageSystem: DefaultMessageSystem,
+      supportedReactions: emojiData,
+    };
+
+    constructor(props) {
+      super(props);
+
+      // State reactionPickerVisible has been lifeted up in MessageSimple component
+      // so that one can use ReactionPickerWrapper component outside MessageContent as well.
+      // This way `Add Reaction` message action can trigger the ReactionPickerWrapper to
+      // open the reaction picker.
+      this.state = {
+        reactionPickerVisible: false,
+      };
+    }
+
+    openReactionPicker = async () => {
+      const { disabled, readOnly } = this.props;
+      if (disabled || readOnly) return;
+      // Keyboard closes automatically whenever modal is opened (currently there is no way of avoiding this afaik)
+      // So we need to postpone the calculation for reaction picker position
+      // until after keyboard is closed completely. To achieve this, we close
+      // the keyboard forcefully and then calculate position of picker in callback.
+      await this.props.dismissKeyboard();
+      this.setState({ reactionPickerVisible: true });
+    };
+
+    dismissReactionPicker = () => {
+      this.setState({ reactionPickerVisible: false });
     };
 
     static themePath = 'message';
@@ -225,16 +366,17 @@ export const MessageSimple = themed(
         groupStyles,
         forceAlign,
         showMessageStatus,
+        reactionsEnabled,
         MessageAvatar,
         MessageContent,
         MessageStatus,
         MessageSystem,
       } = this.props;
 
-      let pos;
-      if ((forceAlign && forceAlign === 'left') || forceAlign === 'right')
-        pos = forceAlign;
-      else pos = isMyMessage(message) ? 'right' : 'left';
+      let alignment;
+      if (forceAlign && (forceAlign === 'left' || forceAlign === 'right'))
+        alignment = forceAlign;
+      else alignment = isMyMessage(message) ? 'right' : 'left';
 
       const lastMessage = this.props.channel.state.messages[
         this.props.channel.state.messages.length - 1
@@ -242,31 +384,53 @@ export const MessageSimple = themed(
       const isVeryLastMessage = lastMessage
         ? lastMessage.id === message.id
         : false;
+
       const hasMarginBottom =
         groupStyles[0] === 'single' || groupStyles[0] === 'bottom'
           ? true
           : false;
 
       if (message.type === 'system') {
-        return <MessageSystem message={message} />;
+        return (
+          <Container
+            hasMarginBottom={hasMarginBottom}
+            isVeryLastMessage={isVeryLastMessage}
+          >
+            <MessageSystem message={message} />
+          </Container>
+        );
       }
+
+      const hasReactions =
+        reactionsEnabled &&
+        message.latest_reactions &&
+        message.latest_reactions.length > 0;
+
+      const forwardedProps = {
+        ...this.props,
+        reactionPickerVisible: this.state.reactionPickerVisible,
+        openReactionPicker: this.openReactionPicker,
+        dismissReactionPicker: this.dismissReactionPicker,
+        alignment,
+        groupStyles: hasReactions ? ['bottom'] : groupStyles,
+      };
 
       return (
         <Container
-          alignment={pos}
+          alignment={alignment}
           hasMarginBottom={hasMarginBottom}
           isVeryLastMessage={isVeryLastMessage}
         >
-          {pos === 'right' ? (
+          {alignment === 'right' ? (
             <React.Fragment>
-              <MessageContent {...this.props} alignment={pos} />
-              <MessageAvatar {...this.props} />
-              {showMessageStatus && <MessageStatus {...this.props} />}
+              <MessageContent {...forwardedProps} />
+              <MessageAvatar {...forwardedProps} />
+              {showMessageStatus && <MessageStatus {...forwardedProps} />}
             </React.Fragment>
           ) : (
             <React.Fragment>
-              <MessageAvatar {...this.props} />
-              <MessageContent {...this.props} alignment={pos} />
+              <MessageAvatar {...forwardedProps} />
+              <MessageContent {...forwardedProps} />
             </React.Fragment>
           )}
         </Container>

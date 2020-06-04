@@ -6,6 +6,7 @@ import {
   Animated,
   Dimensions,
   StatusBar,
+  AppState,
 } from 'react-native';
 import { KeyboardContext } from '../context';
 import PropTypes from 'prop-types';
@@ -16,7 +17,7 @@ import PropTypes from 'prop-types';
  *
  * Main motivation of writing this our own component was to get rid of issues that come with KeyboardAvoidingView from react-native
  * when used with components of fixed height. [Channel](https://github.com/GetStream/stream-chat-react-native/blob/master/src/components/ChannelInner.js) component
- * uses `KeyboardCompatibleView` internally, so you don't need to explicitely add it.
+ * uses `KeyboardCompatibleView` internally, so you don't need to explicitly add it.
  *
  * ```json
  * <KeyboardCompatibleView>
@@ -36,19 +37,18 @@ export class KeyboardCompatibleView extends React.PureComponent {
     keyboardOpenAnimationDuration: 500,
     enabled: true,
   };
-
+  unmounted = false;
   constructor(props) {
     super(props);
 
     this.state = {
       channelHeight: new Animated.Value('100%'),
       // For some reason UI doesn't update sometimes, when state is updated using setValue.
-      // So to force update the component, I am using following key, which will be increamented
+      // So to force update the component, I am using following key, which will be incremented
       // for every keyboard slide up and down.
       key: 0,
+      appState: AppState.currentState,
     };
-
-    this.setupListeners();
 
     this._keyboardOpen = false;
     // Following variable takes care of race condition between keyboardDidHide and keyboardDidShow.
@@ -56,6 +56,37 @@ export class KeyboardCompatibleView extends React.PureComponent {
     this.rootChannelView = false;
     this.initialHeight = undefined;
   }
+  componentDidMount() {
+    AppState.addEventListener('change', this._handleAppStateChange);
+    this.setupListeners();
+    this.unmounted = false;
+  }
+
+  _handleAppStateChange = (nextAppState) => {
+    if (
+      this.state.appState.match(/inactive|background/) &&
+      nextAppState === 'active'
+    ) {
+      this.setupListeners();
+      this.setState({ appState: nextAppState });
+    }
+
+    if (
+      this.state.appState === 'active' &&
+      nextAppState.match(/inactive|background/)
+    ) {
+      /**
+       * When leaving an active app state but still mounted we want to reset
+       * animated height values so when active again, animations will properly
+       * adjust the view instead of having no difference in value to animate to
+       */
+      this.setState({ channelHeight: new Animated.Value(this.initialHeight) });
+      this.initialHeight = undefined;
+      this.dismissKeyboard();
+      this.removeListeners();
+      this.setState({ appState: nextAppState });
+    }
+  };
 
   setupListeners = () => {
     if (!this.props.enabled) return;
@@ -80,9 +111,16 @@ export class KeyboardCompatibleView extends React.PureComponent {
       this.keyboardDidHide,
     );
   };
-  componentWillUnmount() {
+
+  removeListeners = () => {
     this.keyboardDidShowListener.remove();
     this.keyboardDidHideListener.remove();
+  };
+
+  componentWillUnmount() {
+    AppState.removeEventListener('change', this._handleAppStateChange);
+    this.removeListeners();
+    this.unmounted = true;
   }
 
   // TODO: Better to extract following functions to different HOC.
@@ -92,39 +130,41 @@ export class KeyboardCompatibleView extends React.PureComponent {
       ._hidingKeyboardInProgress;
     const keyboardHeight = e.endCoordinates.height;
 
-    this.rootChannelView.measureInWindow((x, y) => {
-      // In case if keyboard was closed in meanwhile while
-      // this measure function was being executed, then we
-      // should abort further execution and let the event callback
-      // keyboardDidHide proceed.
-      if (
-        !keyboardHidingInProgressBeforeMeasure &&
-        this._hidingKeyboardInProgress
-      ) {
-        return;
-      }
+    if (this.rootChannelView) {
+      this.rootChannelView.measureInWindow((x, y) => {
+        // In case if keyboard was closed in meanwhile while
+        // this measure function was being executed, then we
+        // should abort further execution and let the event callback
+        // keyboardDidHide proceed.
+        if (
+          !keyboardHidingInProgressBeforeMeasure &&
+          this._hidingKeyboardInProgress
+        ) {
+          return;
+        }
 
-      const { height: windowHeight } = Dimensions.get('window');
-      let finalHeight;
+        const { height: windowHeight } = Dimensions.get('window');
+        let finalHeight;
 
-      if (Platform.OS === 'android') {
-        finalHeight =
-          windowHeight - y - keyboardHeight - StatusBar.currentHeight;
-      } else {
-        finalHeight = windowHeight - y - keyboardHeight;
-      }
-
-      Animated.timing(this.state.channelHeight, {
-        toValue: finalHeight,
-        duration: this.props.keyboardOpenAnimationDuration,
-      }).start(() => {
-        // Force the final value, in case animation halted in between.
-        this.state.channelHeight.setValue(finalHeight);
-        this.setState({
-          key: this.state.key + 1,
+        if (Platform.OS === 'android') {
+          finalHeight =
+            windowHeight - y - keyboardHeight - StatusBar.currentHeight;
+        } else {
+          finalHeight = windowHeight - y - keyboardHeight;
+        }
+        Animated.timing(this.state.channelHeight, {
+          toValue: finalHeight,
+          duration: this.props.keyboardOpenAnimationDuration,
+          useNativeDriver: false,
+        }).start(() => {
+          // Force the final value, in case animation halted in between.
+          this.state.channelHeight.setValue(finalHeight);
+          this.safeSetState({
+            key: this.state.key + 1,
+          });
         });
       });
-    });
+    }
     this._keyboardOpen = true;
   };
 
@@ -133,15 +173,22 @@ export class KeyboardCompatibleView extends React.PureComponent {
     Animated.timing(this.state.channelHeight, {
       toValue: this.initialHeight,
       duration: this.props.keyboardDismissAnimationDuration,
+      useNativeDriver: false,
     }).start(() => {
       // Force the final value, in case animation halted in between.
       this.state.channelHeight.setValue(this.initialHeight);
       this._hidingKeyboardInProgress = false;
       this._keyboardOpen = false;
-      this.setState({
+      this.safeSetState({
         key: this.state.key + 1,
       });
     });
+  };
+
+  safeSetState = (state) => {
+    if (this.unmounted) return;
+
+    this.setState(state);
   };
 
   keyboardWillDismiss = () =>
@@ -154,6 +201,7 @@ export class KeyboardCompatibleView extends React.PureComponent {
       Animated.timing(this.state.channelHeight, {
         toValue: this.initialHeight,
         duration: this.props.keyboardDismissAnimationDuration,
+        useNativeDriver: false,
       }).start((response) => {
         this.state.channelHeight.setValue(this.initialHeight);
         if (response && !response.finished) {

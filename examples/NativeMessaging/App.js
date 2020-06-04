@@ -10,6 +10,7 @@ import {
   Thread,
   CloseButton,
   ChannelPreviewMessenger,
+  Streami18n
 } from 'stream-chat-react-native';
 
 import { createAppContainer, createStackNavigator } from 'react-navigation';
@@ -22,7 +23,7 @@ const theme = {
     },
   },
   colors: {
-    primary: 'magenta',
+    primary: 'blue',
   },
   spinner: {
     css: `
@@ -32,22 +33,27 @@ const theme = {
   },
 };
 
-const chatClient = new StreamChat('qk4nn7rpcn75');
+const chatClient = new StreamChat('q95x9hkbyd6p');
 const userToken =
-  'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYmlsbG93aW5nLWZpcmVmbHktOCJ9.CQTVyJ6INIM8u28BxkneY2gdYpamjLzSVUOTZKzfQlg';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoicm9uIn0.eRVjxLvd4aqCEHY_JRa97g6k7WpHEhxL7Z4K4yTot1c';
   const user = {
-    id: 'billowing-firefly-8',
-    name: 'Billowing firefly',
-    image:
-      'https://stepupandlive.files.wordpress.com/2014/09/3d-animated-frog-image.jpg',
+    id: 'ron',
   };
   
-const filters = { type: 'messaging' };
+const filters = { type: 'messaging', example: 'example-apps', members: { '$in': ['ron'] } };
 const sort = { last_message_at: -1 };
 const options = {
   state: true,
   watch: true
 }
+
+/**
+ * Start playing with streami18n instance here:
+ * Please refer to description of this PR for details: https://github.com/GetStream/stream-chat-react-native/pull/150
+ */
+const streami18n = new Streami18n({
+  language: 'en'
+});
 
 class ChannelListScreen extends PureComponent {
   static navigationOptions = () => ({
@@ -57,7 +63,7 @@ class ChannelListScreen extends PureComponent {
   render() {
     return (
       <SafeAreaView>
-        <Chat client={chatClient} style={theme}>
+        <Chat client={chatClient} style={theme} i18nInstance={streami18n}>
           <View style={{ display: 'flex', height: '100%', padding: 10 }}>
             <ChannelList
               filters={filters}
@@ -93,7 +99,7 @@ class ChannelScreen extends PureComponent {
 
     return (
       <SafeAreaView>
-        <Chat client={chatClient} style={theme}>
+        <Chat client={chatClient} style={theme} i18nInstance={streami18n}>
           <Channel client={chatClient} channel={channel}>
             <View style={{ display: 'flex', height: '100%' }}>
               <MessageList
@@ -147,7 +153,7 @@ class ThreadScreen extends PureComponent {
 
     return (
       <SafeAreaView>
-        <Chat client={chatClient}>
+        <Chat client={chatClient} i18nInstance={streami18n}>
           <Channel
             client={chatClient}
             channel={channel}
