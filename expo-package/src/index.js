@@ -2,7 +2,7 @@
  * In Expo 34, all the modules such as image picker, document picker, permissions etc etc have been moved to their own packages.
  * And they have been removed from Expo package. But these packages don't work with Expo 32 sdk (because of linking issue).
  */
-import { registerNativeHandlers } from 'stream-chat-react-native-core';
+import { registerNativeHandlers } from '@gifyourgame/stream-chat-react-native-core';
 import NetInfo from '@react-native-community/netinfo';
 import { Constants } from 'react-native-unimodules';
 import * as Expo from 'expo';
@@ -78,4 +78,4 @@ registerNativeHandlers({
   pickDocument: async () => await DocumentPicker.getDocumentAsync(),
 });
 
-export * from 'stream-chat-react-native-core';
+export * from '@gifyourgame/stream-chat-react-native-core';

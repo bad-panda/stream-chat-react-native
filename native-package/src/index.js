@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { registerNativeHandlers } from 'stream-chat-react-native-core';
+import { registerNativeHandlers } from '@gifyourgame/stream-chat-react-native-core';
 import NetInfo from '@react-native-community/netinfo';
 import ImagePicker from '@gifyourgame/react-native-image-picker';
 import DocumentPicker from 'react-native-document-picker';
@@ -99,4 +99,4 @@ if (Platform.OS === 'android') {
   }
 }
 
-export * from 'stream-chat-react-native-core';
+export * from '@gifyourgame/stream-chat-react-native-core';

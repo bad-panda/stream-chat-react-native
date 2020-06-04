@@ -898,6 +898,31 @@
     pouchdb-collections "^1.0.1"
     tiny-queue "^0.2.1"
 
+"@gifyourgame/stream-chat-react-native-core@0.6.600":
+  version "0.6.600"
+  resolved "https://registry.yarnpkg.com/@gifyourgame/stream-chat-react-native-core/-/stream-chat-react-native-core-0.6.600.tgz#4d040e8b1a83bd4eb7ac14e9016e65cc89b13939"
+  integrity sha512-3QlrA0ERTaqS7KNRNX7UiXrp5F3yTAjkA9Uszl0Id/k0NlBRq8ND/QY5gRUmqnUyQQwgfTHHXQZO/AAkWkRb0w==
+  dependencies:
+    "@babel/runtime" "^7.1.2"
+    "@stream-io/react-native-simple-markdown" "^1.1.1"
+    "@stream-io/styled-components" "^4.2.1"
+    anchorme "^1.1.2"
+    babel-plugin-macros "^2.5.1"
+    deep-equal "^1.0.1"
+    deepmerge "^3.2.0"
+    file-loader "^3.0.1"
+    lodash-es "^4.17.11"
+    metro-react-native-babel-preset "^0.53.1"
+    mime-types "^2.1.24"
+    moment "2.23.0"
+    path "^0.12.7"
+    react-art "^16.8.6"
+    react-native-actionsheet "^2.4.2"
+    react-native-image-zoom-viewer "^2.2.25"
+    seamless-immutable "^7.1.4"
+    stream-chat "^1.2.1"
+    uuid "^3.3.2"
+
 "@mrmlnc/readdir-enhanced@^2.2.1":
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/@mrmlnc/readdir-enhanced/-/readdir-enhanced-2.2.1.tgz#524af240d1a360527b730475ecfa1344aa540dde"
@@ -8819,31 +8844,6 @@ stream-buffers@~2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/stream-buffers/-/stream-buffers-2.2.0.tgz#91d5f5130d1cef96dcfa7f726945188741d09ee4"
   integrity sha1-kdX1Ew0c75bc+n9yaUUYh0HQnuQ=
-
-stream-chat-react-native-core@v0.6.5:
-  version "0.6.5"
-  resolved "https://registry.yarnpkg.com/stream-chat-react-native-core/-/stream-chat-react-native-core-0.6.5.tgz#43d60802a871394a008bfa0ec2ba53b56b94b4f9"
-  integrity sha512-bVqttAGvX8u/9sdpbRCbyzNbr7PIFjh/WmDcppXSUpQ8hLyJpKpkTaouiT0PeRSSlnL/eVXJVDvzM/QM2uI1LA==
-  dependencies:
-    "@babel/runtime" "^7.1.2"
-    "@stream-io/react-native-simple-markdown" "^1.1.1"
-    "@stream-io/styled-components" "^4.2.1"
-    anchorme "^1.1.2"
-    babel-plugin-macros "^2.5.1"
-    deep-equal "^1.0.1"
-    deepmerge "^3.2.0"
-    file-loader "^3.0.1"
-    lodash-es "^4.17.11"
-    metro-react-native-babel-preset "^0.53.1"
-    mime-types "^2.1.24"
-    moment "2.23.0"
-    path "^0.12.7"
-    react-art "^16.8.6"
-    react-native-actionsheet "^2.4.2"
-    react-native-image-zoom-viewer "^2.2.25"
-    seamless-immutable "^7.1.4"
-    stream-chat "^1.2.1"
-    uuid "^3.3.2"
 
 stream-chat@^1.2.1:
   version "1.2.2"

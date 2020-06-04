@@ -34,6 +34,7 @@ const normalBundle = {
     },
   ],
   external: [
+    '@gifyourgame/stream-chat-react-native-core',
     'stream-chat-react-native-core',
     'react-native',
     'expo-image-picker',
