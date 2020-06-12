@@ -22,7 +22,6 @@ import { SendButton } from './SendButton';
 import { AttachButton } from './AttachButton';
 
 import { ActionSheetCustom as ActionSheet } from 'react-native-actionsheet';
-// import iconMedia from '../images/icons/icon_attach-media.png';
 
 import iconGallery from '../images/icons/icon_attach-media.png';
 import iconFolder from '../images/icons/icon_folder.png';
@@ -292,26 +291,38 @@ class MessageInput extends PureComponent {
     };
   };
 
-  getUsers = () => {
-    const users = [];
+  getMembers = () => {
+    const result = [];
     const members = this.props.members;
-    const watchers = this.props.watchers;
     if (members && Object.values(members).length) {
-      Object.values(members).forEach((member) => users.push(member.user));
+      Object.values(members).forEach((member) => result.push(member.user));
     }
 
+    return result;
+  };
+
+  getWatchers = () => {
+    const result = [];
+    const watchers = this.props.watchers;
     if (watchers && Object.values(watchers).length) {
-      users.push(...Object.values(watchers));
+      result.push(...Object.values(watchers));
     }
+
+    return result;
+  };
+
+  getUsers = () => {
+    const users = [...this.getMembers(), ...this.getWatchers()];
 
     // make sure we don't list users twice
-    const userMap = {};
+    const uniqueUsers = {};
     for (const user of users) {
-      if (user !== undefined && !userMap[user.id]) {
-        userMap[user.id] = user;
+      if (user !== undefined && !uniqueUsers[user.id]) {
+        uniqueUsers[user.id] = user;
       }
     }
-    const usersArray = Object.values(userMap);
+    const usersArray = Object.values(uniqueUsers);
+
     return usersArray;
   };
 
@@ -586,8 +597,8 @@ class MessageInput extends PureComponent {
       this.state.numberOfUploads >= this.props.maxNumberOfFiles
     )
       return;
-
     const result = await pickImage();
+
     if (result.cancelled) {
       return;
     }
@@ -726,15 +737,6 @@ class MessageInput extends PureComponent {
   };
   setInputBoxRef = (o) => (this.inputBox = o);
 
-  getCommands = () => {
-    const config = this.props.channel.getConfig();
-
-    if (!config) return [];
-
-    const allCommands = config.commands;
-    return allCommands;
-  };
-
   closeAttachActionSheet = () => {
     this.attachActionSheet.hide();
   };
@@ -820,7 +822,7 @@ class MessageInput extends PureComponent {
                   break;
                 default:
               }
-            }, 1);
+            }, 0);
           }}
           styles={this.props.actionSheetStyles}
         />
@@ -842,7 +844,6 @@ class MessageInput extends PureComponent {
               _removeFile={this._removeFile}
               _uploadImage={this._uploadImage}
               onChange={this.onChangeText}
-              getCommands={this.getCommands}
               closeAttachActionSheet={this.closeAttachActionSheet}
               appendText={this.appendText}
               setInputBoxRef={this.setInputBoxRef}
@@ -854,8 +855,7 @@ class MessageInput extends PureComponent {
                 else if (!hasImagePicker && hasFilePicker) this._pickFile();
               }}
               triggerSettings={ACITriggerSettings({
-                users: this.getUsers(),
-                commands: this.getCommands(),
+                channel: this.props.channel,
                 onMentionSelectItem: this.onSelectItem,
                 t,
               })}
@@ -889,8 +889,7 @@ class MessageInput extends PureComponent {
                 triggerSettings={
                   this.props.triggerSettings ||
                   (this.props.ACITriggerSettings || ACITriggerSettings)({
-                    users: this.getUsers(),
-                    commands: this.getCommands(),
+                    channel: this.props.channel,
                     onMentionSelectItem: this.onSelectItem,
                     t,
                   })
