@@ -561,7 +561,11 @@ class MessageInput extends PureComponent {
           this.props.channel,
         );
       } else {
-        response = await this.props.channel.sendFile(file.uri);
+        response = await this.props.channel.sendFile(
+          file.uri,
+          file.name,
+          file.type,
+        );
       }
     } catch (e) {
       console.warn(e);
@@ -822,7 +826,7 @@ class MessageInput extends PureComponent {
                   break;
                 default:
               }
-            }, 0);
+            }, 10);
           }}
           styles={this.props.actionSheetStyles}
         />

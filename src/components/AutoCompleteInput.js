@@ -177,6 +177,31 @@ class AutoCompleteInput extends React.PureComponent {
     return true;
   };
 
+  isHashtag = (text) => {
+    if (text[0] !== '#') return false;
+
+    const tokens = text.split(' ');
+
+    if (tokens.length > 1) return false;
+
+    return true;
+  };
+
+  handleHashtag = (text) => {
+    if (!this.isHashtag(text)) {
+      return false;
+    }
+
+    this.setState({ currentTrigger: '#' }, () => {
+      if (!this.isTrackingStarted) this.startTracking();
+
+      const actualToken = text.trim().slice(1);
+      return this.updateSuggestions(actualToken);
+    });
+
+    return true;
+  };
+
   handleMentions = (text) => {
     const { selectionEnd } = this.state;
     // TODO: Move these const to props
@@ -184,7 +209,7 @@ class AutoCompleteInput extends React.PureComponent {
 
     const tokenMatch = text
       .slice(0, selectionEnd)
-      .match(/(?!^|\W)?@\w*\s?\w*$/g);
+      .match(/(?!^|\W)?[:@][^\s]*\s?[^\s]*$/g);
 
     const lastToken = tokenMatch && tokenMatch[tokenMatch.length - 1].trim();
     const triggers = this.props.triggerSettings;
@@ -229,6 +254,7 @@ class AutoCompleteInput extends React.PureComponent {
       )
         return;
 
+      if (this.handleHashtag(text)) return;
       if (this.handleCommand(text)) return;
 
       this.handleMentions(text);

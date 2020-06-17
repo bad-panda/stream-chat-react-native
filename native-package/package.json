@@ -1,6 +1,6 @@
 {
   "name": "@gifyourgame/stream-chat-react-native",
-  "version": "0.11.1000",
+  "version": "0.12.3000",
   "author": {
     "company": "Stream.io Inc"
   },
@@ -54,7 +54,7 @@
   },
   "dependencies": {
     "es6-symbol": "^3.1.1",
-    "@gifyourgame/stream-chat-react-native-core": "0.11.1000"
+    "@gifyourgame/stream-chat-react-native-core": "0.12.3000"
   },
   "peerDependencies": {
     "@react-native-community/netinfo": ">=2.0.7",
